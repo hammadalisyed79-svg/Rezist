@@ -36,7 +36,8 @@ export function LocationPill({ cities }: { cities: string[] }) {
       <button type="button" className="lz-location-pill" onClick={() => setOpen((v) => !v)}>
         <span className="lz-pin" aria-hidden />
         <span className="lz-location-label">
-          {selected ? `${selected.city}` : city || "Select city"}
+          {selected ? selected.city : city || "Select city"}
+          {selected ? ` · ${selected.name.replace(/^Rezist\s*/i, "").slice(0, 18)}` : ""}
         </span>
         <span className="lz-caret">▾</span>
       </button>

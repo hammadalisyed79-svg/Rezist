@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { SiteShell } from "@/components/SiteShell";
 import { OrderClient } from "@/components/OrderClient";
 import { CategoryRail } from "@/components/CategoryRail";
 
@@ -30,14 +29,13 @@ export default async function OrderPage({
   const cities = [...new Set(branches.map((b) => b.city))];
 
   return (
-    <div className="site lz-store">
-      <SiteHeader cities={cities} />
-      <main className="lz-shop-section">
+    <SiteShell cities={cities}>
+      <main className="lz-shop-section lz-order-page">
         <div className="lz-shop-head">
           <div>
             <p className="eyebrow">Checkout</p>
             <h1>Your order</h1>
-            <p className="muted">Select pickup or delivery, confirm branch, place order.</p>
+            <p className="muted">Confirm branch, pickup or delivery, then place your order.</p>
           </div>
         </div>
         <CategoryRail
@@ -51,7 +49,6 @@ export default async function OrderPage({
           initialBranchId={sp.branchId || branches[0]?.id}
         />
       </main>
-      <SiteFooter />
-    </div>
+    </SiteShell>
   );
 }

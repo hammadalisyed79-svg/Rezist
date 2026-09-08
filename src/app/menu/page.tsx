@@ -1,8 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
-import { CategoryRail } from "@/components/CategoryRail";
-import { ProductCard } from "@/components/ProductCard";
+import { SiteShell } from "@/components/SiteShell";
+import { MenuExplorer } from "@/components/MenuExplorer";
 
 export default async function MenuPage({
   searchParams,
@@ -29,39 +27,33 @@ export default async function MenuPage({
   ]);
 
   const cities = [...new Set(branches.map((b) => b.city))];
-  const catRail = categories.map((c) => ({
-    id: c.id,
-    name: c.name,
-    slug: c.slug,
-    count: c.products.length,
-  }));
+  const catRail = categories
+    .filter((c) => c.products.length > 0)
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      count: c.products.length,
+    }));
   const products = sp.cat
     ? categories.find((c) => c.slug === sp.cat)?.products || []
     : categories.flatMap((c) => c.products);
   const title = sp.cat
     ? categories.find((c) => c.slug === sp.cat)?.name || "Menu"
-    : "All products";
+    : "All desserts";
 
   return (
-    <div className="site lz-store">
-      <SiteHeader cities={cities} />
+    <SiteShell cities={cities}>
       <main className="lz-shop-section">
         <div className="lz-shop-head">
           <div>
             <p className="eyebrow">Online menu</p>
             <h1>{title}</h1>
-            <p className="muted">Browse by category · add to cart · checkout by branch.</p>
+            <p className="muted">Search, filter by category, tap + Add — review cart anytime.</p>
           </div>
         </div>
-        <CategoryRail categories={catRail} active={sp.cat} />
-        <div className="lz-product-grid">
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-        {!products.length ? <p className="muted">No products in this category yet.</p> : null}
+        <MenuExplorer categories={catRail} products={products} activeCat={sp.cat} />
       </main>
-      <SiteFooter />
-    </div>
+    </SiteShell>
   );
 }

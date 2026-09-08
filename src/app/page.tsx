@@ -1,12 +1,13 @@
 import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { brand } from "@/lib/brand";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { SiteShell, SectionHead } from "@/components/SiteShell";
 import { TrustBar } from "@/components/TrustBar";
 import { StoreBanner } from "@/components/StoreBanner";
 import { CategoryRail } from "@/components/CategoryRail";
 import { ProductCard } from "@/components/ProductCard";
+import { HowItWorks } from "@/components/HowItWorks";
 
 export default async function HomePage() {
   const [branches, categories, products] = await Promise.all([
@@ -33,40 +34,67 @@ export default async function HomePage() {
     .filter((c) => c._count.products > 0)
     .map((c) => ({ id: c.id, name: c.name, slug: c.slug, count: c._count.products }));
 
+  const featured = products.filter((p) => p.category?.slug === "cakes").slice(0, 4);
+  const popular = products.slice(0, 10);
+
   return (
-    <div className="site lz-store">
-      <SiteHeader cities={cities} />
+    <SiteShell cities={cities}>
       <StoreBanner />
       <TrustBar />
+      <HowItWorks />
 
       <section className="lz-shop-section">
-        <div className="lz-shop-head">
-          <div>
-            <p className="eyebrow">Menu</p>
-            <h2>Order your favourites</h2>
-          </div>
-          <Link className="text-link" href="/menu">
-            View all →
-          </Link>
+        <SectionHead
+          eyebrow="Signature"
+          title="Cakes worth the craving"
+          href="/menu?cat=cakes"
+          linkLabel="All cakes →"
+        />
+        <div className="lz-product-grid">
+          {featured.map((p) => (
+            <ProductCard key={p.id} product={p} featured />
+          ))}
         </div>
+      </section>
+
+      <section className="lz-shop-section">
+        <SectionHead eyebrow="Full menu" title="Order your favourites" href="/menu" />
         <CategoryRail categories={catRail} />
         <div className="lz-product-grid">
-          {products.slice(0, 12).map((p) => (
+          {popular.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
         </div>
       </section>
 
-      <section className="lz-shop-section muted-section">
-        <div className="lz-shop-head">
-          <div>
-            <p className="eyebrow">Branches</p>
-            <h2>Choose nearest lounge</h2>
-            <p className="muted">{brand.cities.join(" · ")}</p>
-          </div>
+      <section className="lz-mood">
+        <div className="lz-mood-copy">
+          <p className="eyebrow">The lounge</p>
+          <h2>{brand.tagline}</h2>
+          <p>{brand.bio}</p>
+          <Link className="btn" href="/order">
+            Checkout
+          </Link>
         </div>
-        <div className="branch-grid">
-          {branches.map((b) => (
+        <div className="lz-mood-gallery">
+          {brand.gallery.slice(0, 4).map((src, i) => (
+            <div key={src} className={`lz-mood-shot s${i + 1}`}>
+              <Image src={src} alt="" fill sizes="(max-width: 800px) 50vw, 280px" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="lz-shop-section muted-section">
+        <SectionHead
+          eyebrow="Branches"
+          title="Choose nearest lounge"
+          text={brand.cities.join(" · ")}
+          href="/branches"
+          linkLabel="All branches →"
+        />
+        <div className="branch-grid lz-branch-scroll">
+          {branches.slice(0, 6).map((b) => (
             <article key={b.id} className="branch-card">
               <p className="city">{b.city}</p>
               <h3>{b.name}</h3>
@@ -76,7 +104,6 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-      <SiteFooter />
-    </div>
+    </SiteShell>
   );
 }

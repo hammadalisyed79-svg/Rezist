@@ -1,5 +1,4 @@
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { SiteShell } from "@/components/SiteShell";
 import { brand } from "@/lib/brand";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -12,8 +11,7 @@ export default async function ContactPage() {
   const cities = [...new Set(branches.map((b) => b.city))];
 
   return (
-    <div className="site lz-store">
-      <SiteHeader cities={cities} />
+    <SiteShell cities={cities}>
       <main className="lz-shop-section">
         <div className="lz-shop-head">
           <div>
@@ -46,7 +44,7 @@ export default async function ContactPage() {
           </article>
           <article className="panel">
             <h2>Order help</h2>
-            <p>Need a cake for today? Call us or start online ordering.</p>
+            <p>Need a cake for today? Call us or start online ordering in under a minute.</p>
             <div className="hero-cta">
               <Link className="btn" href="/order">
                 Order online
@@ -72,7 +70,6 @@ export default async function ContactPage() {
           </div>
         </section>
       </main>
-      <SiteFooter />
-    </div>
+    </SiteShell>
   );
 }

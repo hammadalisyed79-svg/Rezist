@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { SiteShell } from "@/components/SiteShell";
 import Link from "next/link";
 
 export default async function BranchesPublicPage() {
@@ -11,8 +10,7 @@ export default async function BranchesPublicPage() {
   const cities = [...new Set(branches.map((b) => b.city))];
 
   return (
-    <div className="site lz-store">
-      <SiteHeader cities={cities} />
+    <SiteShell cities={cities}>
       <main className="lz-shop-section">
         <div className="lz-shop-head">
           <div>
@@ -32,14 +30,20 @@ export default async function BranchesPublicPage() {
                     <h3>{b.name}</h3>
                     <p>{b.address}</p>
                     {b.phone ? <p>{b.phone}</p> : null}
-                    <Link href={`/order?branchId=${b.id}`}>Order from this branch →</Link>
+                    <div className="lz-branch-actions">
+                      <Link className="btn-sm" href={`/order?branchId=${b.id}`}>
+                        Order here
+                      </Link>
+                      <Link className="text-link" href={`/menu?branchId=${b.id}`}>
+                        Browse menu →
+                      </Link>
+                    </div>
                   </article>
                 ))}
             </div>
           </section>
         ))}
       </main>
-      <SiteFooter />
-    </div>
+    </SiteShell>
   );
 }
