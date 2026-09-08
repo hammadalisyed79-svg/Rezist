@@ -35,8 +35,10 @@ export const brand = {
   freeDeliveryMin: 1000,
   colors: {
     shineBlack: "#050505",
-    pureGold: "#FFD700",
-    goldRich: "#F0C400",
+    shineGold: "#D4AF37",
+    goldHighlight: "#F3E5AB",
+    goldBright: "#F7E7A1",
+    goldDeep: "#9A7B1A",
     pearlWhite: "#F8F6F0",
     pearlSoft: "#FFFEF9",
     pearlDim: "#E8E4DA",

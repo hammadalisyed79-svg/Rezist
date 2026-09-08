@@ -1,14 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  /* Pure Gold · Shine Black · Pearl White */
+  /* Pure Gold · Shine Black · Pearl White — metallic shine gold */
   --black: #050505;
   --black-shine: #0d0d0d;
   --black-elevated: #141414;
-  --gold: #ffd700;
-  --gold-pure: #ffd700;
-  --gold-rich: #f0c400;
-  --gold-deep: #c9a227;
+  --gold: #d4af37;
+  --gold-pure: #d4af37;
+  --gold-shine: #f3e5ab;
+  --gold-bright: #f7e7a1;
+  --gold-rich: #c5a028;
+  --gold-deep: #9a7b1a;
+  --gold-bronze: #8a6e1c;
   --pearl: #f8f6f0;
   --pearl-soft: #fffef9;
   --pearl-dim: #e8e4da;
@@ -18,15 +21,33 @@
   --ink: var(--pearl);
   --muted: var(--pearl-dim);
   --accent: var(--gold);
-  --accent-2: var(--gold-rich);
+  --accent-2: var(--gold-bright);
   --panel: var(--black-elevated);
-  --line: rgba(255, 215, 0, 0.35);
+  --line: rgba(212, 175, 55, 0.42);
   --ok: #9dffb0;
   --err: #ffb4b4;
   --erp-bg: var(--black);
   --erp-panel: var(--black-elevated);
-  --erp-line: rgba(255, 215, 0, 0.28);
+  --erp-line: rgba(212, 175, 55, 0.32);
   --erp-ink: var(--pearl);
+  --gold-gradient: linear-gradient(
+    145deg,
+    #f8efc7 0%,
+    #f3e5ab 12%,
+    #e8c547 28%,
+    #d4af37 48%,
+    #c5a028 68%,
+    #aa8a22 82%,
+    #f0d875 100%
+  );
+  --gold-gradient-btn: linear-gradient(
+    180deg,
+    #f8efc7 0%,
+    #efd56a 22%,
+    #d4af37 55%,
+    #b8941f 88%,
+    #e6c84a 100%
+  );
 }
 
 @theme inline {
@@ -68,8 +89,8 @@ textarea {
 .site {
   min-height: 100vh;
   background:
-    radial-gradient(ellipse 70% 45% at 12% 0%, rgba(255, 215, 0, 0.16), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 88% 18%, rgba(255, 215, 0, 0.08), transparent 50%),
+    radial-gradient(ellipse 70% 45% at 12% 0%, rgba(243, 229, 171, 0.14), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 88% 18%, rgba(212, 175, 55, 0.1), transparent 50%),
     linear-gradient(180deg, var(--black) 0%, var(--black-shine) 45%, var(--black) 100%);
   color: var(--pearl);
 }
@@ -102,9 +123,14 @@ textarea {
 
 .logo strong {
   display: block;
-  color: var(--accent);
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
   font-size: 1.35rem;
   line-height: 1.1;
+  filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.35));
 }
 
 .logo small {
@@ -141,7 +167,7 @@ textarea {
   height: 1.25rem;
   margin-left: 0.35rem;
   border-radius: 999px;
-  background: var(--gold);
+  background: var(--gold-gradient-btn);
   color: var(--black);
   font-size: 0.75rem;
 }
@@ -197,9 +223,10 @@ textarea {
 }
 
 .fulfill-toggle button.active {
-  background: linear-gradient(180deg, #ffe566 0%, var(--gold) 100%);
-  border-color: var(--gold);
+  background: var(--gold-gradient-btn);
+  border-color: var(--gold-deep);
   color: var(--black);
+  box-shadow: 0 0 0 1px rgba(248, 239, 199, 0.3) inset;
 }
 
 .category-chips {
@@ -357,7 +384,12 @@ textarea {
   font-size: clamp(2.8rem, 7vw, 5.5rem);
   line-height: 0.9;
   margin: 0.75rem 0 0.35rem;
-  color: var(--accent);
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 18px rgba(212, 175, 55, 0.35));
   animation: rise 0.9s ease both;
 }
 
@@ -425,28 +457,37 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
+  border: 1px solid var(--gold-deep);
   padding: 0.7rem 1.15rem;
   cursor: pointer;
   border-radius: 999px;
-  background: linear-gradient(180deg, #ffe566 0%, var(--gold) 45%, var(--gold-rich) 100%);
+  background: var(--gold-gradient-btn);
   color: var(--black);
   font-weight: 700;
-  box-shadow: 0 0 24px rgba(255, 215, 0, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(248, 239, 199, 0.35) inset,
+    0 8px 28px rgba(212, 175, 55, 0.28),
+    0 0 40px rgba(212, 175, 55, 0.12);
+  text-shadow: 0 1px 0 rgba(248, 239, 199, 0.35);
+}
+
+.btn:hover,
+.btn-sm:hover {
+  filter: brightness(1.06);
 }
 
 .btn-ghost {
   background: transparent;
   border-color: var(--gold);
-  color: var(--gold);
-  box-shadow: none;
+  color: var(--gold-bright);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.12);
+  text-shadow: none;
 }
 
 .btn-sm {
   padding: 0.35rem 0.7rem;
   font-size: 0.85rem;
   border-radius: 8px;
-  box-shadow: none;
 }
 
 .section {
@@ -654,7 +695,8 @@ textarea {
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at 20% 20%, rgba(255, 215, 0, 0.2), transparent 40%),
+    radial-gradient(circle at 20% 20%, rgba(243, 229, 171, 0.18), transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(212, 175, 55, 0.1), transparent 45%),
     var(--black);
   color: var(--pearl);
   padding: 1rem;
@@ -663,34 +705,40 @@ textarea {
 .login-card {
   width: min(420px, 100%);
   background: var(--black-elevated);
-  border-color: rgba(255, 215, 0, 0.28);
+  border-color: rgba(212, 175, 55, 0.35);
   color: var(--pearl);
 }
 
 .login-card h1 {
   font-family: var(--font-display), serif;
   margin: 0.25rem 0;
-  color: var(--gold);
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .login-card input {
   background: var(--black);
   color: var(--pearl);
-  border-color: rgba(255, 215, 0, 0.25);
+  border-color: rgba(212, 175, 55, 0.3);
 }
 
 .login-card .btn,
 .login-card button[type="submit"] {
   width: 100%;
   margin-top: 0.5rem;
-  background: linear-gradient(180deg, #ffe566 0%, var(--gold) 45%, var(--gold-rich) 100%);
-  border: 0;
+  background: var(--gold-gradient-btn);
+  border: 1px solid var(--gold-deep);
   color: var(--black);
   padding: 0.75rem;
   border-radius: 999px;
   cursor: pointer;
   font-weight: 700;
-  box-shadow: 0 0 24px rgba(255, 215, 0, 0.25);
+  box-shadow:
+    0 0 0 1px rgba(248, 239, 199, 0.35) inset,
+    0 8px 28px rgba(212, 175, 55, 0.3);
 }
 
 .hint,
@@ -743,11 +791,12 @@ textarea {
   height: 2.2rem;
   display: grid;
   place-items: center;
-  background: linear-gradient(180deg, #ffe566, var(--gold));
+  background: var(--gold-gradient-btn);
   color: var(--black);
   border-radius: 8px;
   font-family: var(--font-display), serif;
   font-weight: 700;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
 }
 
 .erp-logo {
@@ -779,8 +828,8 @@ textarea {
 
 .erp-sidebar a.active,
 .erp-sidebar a:hover {
-  background: rgba(255, 215, 0, 0.12);
-  color: var(--gold);
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold-bright);
 }
 
 .erp-user {
@@ -923,8 +972,8 @@ textarea {
 }
 
 .chip.active {
-  background: linear-gradient(180deg, #ffe566, var(--gold));
-  border-color: var(--gold);
+  background: var(--gold-gradient-btn);
+  border-color: var(--gold-deep);
   color: var(--black);
 }
 
@@ -957,7 +1006,7 @@ textarea {
 
 .product-tile:hover {
   border-color: var(--gold);
-  box-shadow: 0 0 16px rgba(255, 215, 0, 0.18);
+  box-shadow: 0 0 18px rgba(212, 175, 55, 0.22);
 }
 
 .cart-list {
@@ -997,7 +1046,7 @@ textarea {
 }
 
 .warn-row {
-  background: rgba(255, 215, 0, 0.08);
+  background: rgba(212, 175, 55, 0.1);
 }
 
 .row-actions {
