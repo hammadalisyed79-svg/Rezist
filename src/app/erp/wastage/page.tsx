@@ -22,8 +22,9 @@ export default async function WastagePage() {
     <ErpPage user={user}>
       <header className="page-header">
         <div>
-          <p className="eyebrow">Loss control</p>
-          <h1>Wastage</h1>
+          <p className="eyebrow">Phase 6 · Loss control</p>
+          <h1>Wastage & spoilage</h1>
+          <p className="muted">Inventory-linked write-offs with category and cost.</p>
         </div>
       </header>
       <WastageClient

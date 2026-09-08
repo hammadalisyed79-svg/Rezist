@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { earnPoints } from "./loyalty";
 
 /** Apply active percent/fixed promos on top of list/override price. */
 export async function getEffectivePrice(
@@ -52,10 +53,15 @@ export async function upsertCustomerFromOrder(input: {
   branchId?: string;
   orderTotal?: number;
   saleId?: string;
+  skipEarn?: boolean;
 }) {
   const phone = input.phone.replace(/\s+/g, "");
-  const points = input.orderTotal ? Math.floor(input.orderTotal / 100) : 0;
   const existing = await prisma.customer.findUnique({ where: { phone } });
+  const points =
+    input.skipEarn || !input.orderTotal
+      ? 0
+      : earnPoints(input.orderTotal, existing?.loyaltyPoints || 0);
+
   if (existing) {
     const customer = await prisma.customer.update({
       where: { id: existing.id },
@@ -71,7 +77,7 @@ export async function upsertCustomerFromOrder(input: {
         data: {
           customerId: customer.id,
           delta: points,
-          reason: "Order earn (Rs100 = 1 pt)",
+          reason: "Order earn (tier-adjusted Rs100 = 1 pt)",
           saleId: input.saleId || null,
         },
       });

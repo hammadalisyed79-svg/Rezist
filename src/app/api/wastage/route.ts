@@ -34,13 +34,20 @@ export async function POST(req: NextRequest) {
 
   try {
     const record = await prisma.$transaction(async () => {
-      await adjustStock(branchId, String(body.productId), -Number(body.quantity));
+      const product = await prisma.product.findUnique({ where: { id: String(body.productId) } });
+      if (!product) throw new Error("Product not found");
+      const qty = Number(body.quantity);
+      const unitCost = product.costPrice || 0;
+      await adjustStock(branchId, product.id, -qty);
       return prisma.wastageRecord.create({
         data: {
           branchId,
-          productId: String(body.productId),
-          quantity: Number(body.quantity),
+          productId: product.id,
+          quantity: qty,
           reason: String(body.reason || "Expired / unsold"),
+          category: String(body.category || "SPOILAGE"),
+          unitCost,
+          costTotal: unitCost * qty,
           recordedById: session.id,
         },
         include: { product: true, branch: true },

@@ -88,6 +88,41 @@ export default async function ErpDashboard() {
 
       <section className="panel">
         <div className="lz-shop-head">
+          <h2>Phase 5 shortcuts</h2>
+        </div>
+        <p className="muted">
+          <Link className="text-link" href="/erp/analytics">
+            Analytics
+          </Link>
+          {" · "}
+          <Link className="text-link" href="/erp/scoreboard">
+            Scoreboard
+          </Link>
+          {" · "}
+          <Link className="text-link" href="/erp/forecast">
+            Forecast
+          </Link>
+          {" · "}
+          <Link className="text-link" href="/erp/alerts">
+            Alerts
+          </Link>
+          {" · "}
+          <Link className="text-link" href="/erp/quality">
+            Food safety
+          </Link>
+          {" · "}
+          <Link className="text-link" href="/erp/handover">
+            Handover
+          </Link>
+          {" · "}
+          <Link className="text-link" href="/erp/exports">
+            Exports
+          </Link>
+        </p>
+      </section>
+
+      <section className="panel">
+        <div className="lz-shop-head">
           <h2>Low stock</h2>
           <Link className="text-link" href="/erp/reorder">
             Reorder →

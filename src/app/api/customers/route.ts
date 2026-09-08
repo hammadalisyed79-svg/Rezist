@@ -59,12 +59,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ customer });
   }
 
+  if (action === "setBirthday") {
+    const customer = await prisma.customer.update({
+      where: { id: String(body.customerId) },
+      data: { birthday: body.birthday ? new Date(String(body.birthday)) : null },
+    });
+    return NextResponse.json({ customer });
+  }
+
   const customer = await upsertCustomerFromOrder({
     name: String(body.name),
     phone: String(body.phone),
     email: body.email,
     branchId: body.branchId || session.branchId || undefined,
   });
+
+  if (body.birthday) {
+    await prisma.customer.update({
+      where: { id: customer.id },
+      data: { birthday: new Date(String(body.birthday)) },
+    });
+  }
 
   await writeAudit({
     actor: session,

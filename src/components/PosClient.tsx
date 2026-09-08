@@ -35,6 +35,7 @@ type OfflineSale = {
   paymentMethod: string;
   customerPhone?: string;
   customerName?: string;
+  redeemPoints?: number;
   items: { productId: string; quantity: number }[];
   createdAt: string;
 };
@@ -84,6 +85,11 @@ export function PosClient({
   const [barcode, setBarcode] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [loyaltyInfo, setLoyaltyInfo] = useState<{
+    points: number;
+    tierLabel: string;
+  } | null>(null);
+  const [redeemPoints, setRedeemPoints] = useState(0);
   const [offlineCount, setOfflineCount] = useState(0);
   const [online, setOnline] = useState(true);
 
@@ -259,6 +265,7 @@ export function PosClient({
       paymentMethod,
       customerPhone: customerPhone || undefined,
       customerName: customerName || undefined,
+      redeemPoints: redeemPoints || undefined,
       items: Object.entries(cart).map(([productId, quantity]) => ({ productId, quantity })),
     };
 
@@ -269,6 +276,8 @@ export function PosClient({
       saveQueue(q);
       setOfflineCount(q.length);
       setCart({});
+      setRedeemPoints(0);
+      setLoyaltyInfo(null);
       setMessage(`Offline sale queued (${q.length} pending sync)`);
       return;
     }
@@ -287,6 +296,8 @@ export function PosClient({
     setCart({});
     setCustomerPhone("");
     setCustomerName("");
+    setRedeemPoints(0);
+    setLoyaltyInfo(null);
     setMessage(`Sale ${data.sale.saleNo} recorded — ${formatPKR(data.sale.total)}`);
     const branch = branches.find((b) => b.id === branchId);
     openInvoicePrint(
@@ -434,7 +445,29 @@ export function PosClient({
             Customer phone (loyalty)
             <input
               value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
+              onChange={(e) => {
+                setCustomerPhone(e.target.value);
+                setLoyaltyInfo(null);
+                setRedeemPoints(0);
+              }}
+              onBlur={async () => {
+                const phone = customerPhone.replace(/\s+/g, "");
+                if (!phone || phone.length < 10) {
+                  setLoyaltyInfo(null);
+                  return;
+                }
+                const res = await fetch(`/api/pos?phone=${encodeURIComponent(phone)}`);
+                const data = await res.json();
+                if (data.customer) {
+                  setLoyaltyInfo({
+                    points: data.customer.loyaltyPoints,
+                    tierLabel: data.customer.tierLabel,
+                  });
+                  if (!customerName) setCustomerName(data.customer.name || "");
+                } else {
+                  setLoyaltyInfo({ points: 0, tierLabel: "Bronze" });
+                }
+              }}
               placeholder="03xx…"
             />
           </label>
@@ -442,6 +475,24 @@ export function PosClient({
             Name
             <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Optional" />
           </label>
+          {loyaltyInfo ? (
+            <p className="muted">
+              {loyaltyInfo.tierLabel} · {loyaltyInfo.points} pts · redeem max{" "}
+              {Math.min(loyaltyInfo.points, Math.floor(total * 0.2))} (20% cap, 1 pt = Rs 1)
+            </p>
+          ) : null}
+          {loyaltyInfo && loyaltyInfo.points > 0 ? (
+            <label>
+              Redeem points
+              <input
+                type="number"
+                min={0}
+                max={Math.min(loyaltyInfo.points, Math.floor(total * 0.2))}
+                value={redeemPoints}
+                onChange={(e) => setRedeemPoints(Number(e.target.value) || 0)}
+              />
+            </label>
+          ) : null}
           <label>
             Payment
             <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
@@ -451,7 +502,18 @@ export function PosClient({
               <option value="EASYPAISA">EasyPaisa</option>
             </select>
           </label>
-          <p className="total">{formatPKR(total)}</p>
+          <p className="total">
+            {redeemPoints > 0 ? (
+              <>
+                <small className="muted" style={{ display: "block" }}>
+                  Subtotal {formatPKR(total)} − {redeemPoints} pts
+                </small>
+                {formatPKR(Math.max(0, total - redeemPoints))}
+              </>
+            ) : (
+              formatPKR(total)
+            )}
+          </p>
           <button type="button" className="btn" disabled={!lines.length || !branchId || !shift} onClick={checkout}>
             Complete sale
           </button>

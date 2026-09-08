@@ -29,6 +29,15 @@ export const permissions = {
   hq: ["HQ_ADMIN"] as Role[],
   delivery: ["HQ_ADMIN", "BRANCH_MANAGER", "CASHIER"] as Role[],
   mobileApi: ["HQ_ADMIN", "BRANCH_MANAGER"] as Role[],
+  analytics: ["HQ_ADMIN", "BRANCH_MANAGER"] as Role[],
+  forecast: ["HQ_ADMIN", "BRANCH_MANAGER"] as Role[],
+  quality: ["HQ_ADMIN", "BRANCH_MANAGER", "CASHIER"] as Role[],
+  payroll: ["HQ_ADMIN", "BRANCH_MANAGER"] as Role[],
+  scoreboard: ["HQ_ADMIN"] as Role[],
+  handover: ["HQ_ADMIN", "BRANCH_MANAGER", "CASHIER"] as Role[],
+  suppliers: ["HQ_ADMIN", "BRANCH_MANAGER"] as Role[],
+  alerts: ["HQ_ADMIN", "BRANCH_MANAGER", "CASHIER"] as Role[],
+  exports: ["HQ_ADMIN", "BRANCH_MANAGER"] as Role[],
 };
 
 export function can(role: Role, capability: keyof typeof permissions) {

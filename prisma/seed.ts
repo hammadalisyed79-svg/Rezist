@@ -6,6 +6,11 @@ const prisma = new PrismaClient();
 
 async function main() {
   await prisma.auditLog.deleteMany();
+  await prisma.opsNotification.deleteMany();
+  await prisma.shiftHandover.deleteMany();
+  await prisma.reportPreset.deleteMany();
+  await prisma.payrollStub.deleteMany();
+  await prisma.qualityCheck.deleteMany();
   await prisma.loyaltyLedger.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.mobileApiToken.deleteMany();
@@ -651,6 +656,152 @@ async function main() {
     ],
   });
 
+  // Phase 5 sample food-safety checks
+  const adminUser = await prisma.user.findUniqueOrThrow({ where: { email: "admin@rezist.pk" } });
+  await prisma.qualityCheck.createMany({
+    data: [
+      {
+        branchId: gujrat.id,
+        checkType: "TEMP",
+        title: "Cold display case",
+        status: "PASS",
+        value: 3.8,
+        unit: "°C",
+        checkedById: adminUser.id,
+      },
+      {
+        branchId: kitchen.id,
+        checkType: "CLEANING",
+        title: "Closing sanitize — prep tables",
+        status: "PASS",
+        checkedById: adminUser.id,
+      },
+      {
+        branchId: gujrat.id,
+        checkType: "RECEIVING",
+        title: "Cream delivery inspection",
+        status: "PASS",
+        notes: "Temp OK · seals intact",
+        checkedById: adminUser.id,
+      },
+    ],
+  });
+
+  // Seed a few historical sales so analytics/forecast have signal
+  const sellable = finished.filter((p) => p.isSellable).slice(0, 4);
+  const cashier = await prisma.user.findFirst({ where: { email: "cashier.gujrat@rezist.pk" } });
+  if (cashier && sellable.length) {
+    for (let d = 1; d <= 10; d++) {
+      const when = new Date();
+      when.setDate(when.getDate() - d);
+      when.setHours(11 + (d % 5), 15, 0, 0);
+      const product = sellable[d % sellable.length];
+      const qty = 1 + (d % 3);
+      const unitPrice = product.listPrice;
+      const lineTotal = unitPrice * qty;
+      await prisma.sale.create({
+        data: {
+          saleNo: `SEED-${String(d).padStart(4, "0")}`,
+          branchId: gujrat.id,
+          cashierId: cashier.id,
+          channel: "POS",
+          subtotal: lineTotal,
+          discount: 0,
+          loyaltyRedeemed: 0,
+          tax: 0,
+          total: lineTotal,
+          paymentMethod: "CASH",
+          createdAt: when,
+          lines: {
+            create: [
+              {
+                productId: product.id,
+                quantity: qty,
+                unitPrice,
+                lineTotal,
+              },
+            ],
+          },
+        },
+      });
+    }
+  }
+
+  // Phase 6 — export presets, sample wastage + handover
+  await prisma.reportPreset.createMany({
+    data: [
+      {
+        name: "Daily branch scoreboard",
+        reportType: "SCOREBOARD",
+        cadence: "DAILY",
+        notes: "HQ morning pack",
+      },
+      {
+        name: "Weekly wastage",
+        reportType: "WASTAGE",
+        cadence: "WEEKLY",
+        notes: "Loss control review",
+      },
+      {
+        name: "Supplier performance",
+        reportType: "SUPPLIERS",
+        cadence: "WEEKLY",
+      },
+      {
+        name: "Sales extract",
+        reportType: "SALES",
+        cadence: "DAILY",
+      },
+      {
+        name: "Handover log",
+        reportType: "HANDOVER",
+        cadence: "DAILY",
+      },
+    ],
+  });
+
+  if (cashier && sellable[0]) {
+    const spoil = sellable[0];
+    await prisma.wastageRecord.create({
+      data: {
+        branchId: gujrat.id,
+        productId: spoil.id,
+        quantity: 1,
+        reason: "End-of-day unsold cream cake",
+        category: "UNSOLD",
+        unitCost: spoil.costPrice,
+        costTotal: spoil.costPrice,
+        recordedById: cashier.id,
+      },
+    });
+    await prisma.shiftHandover.create({
+      data: {
+        branchId: gujrat.id,
+        fromUserId: cashier.id,
+        expectedCash: 5000,
+        countedCash: 4980,
+        variance: -20,
+        salesTotal: 12000,
+        saleCount: 8,
+        wastageQty: 1,
+        openOrders: 0,
+        tillNo: "TILL-1",
+        notes: "Seed sample handover",
+        status: "OPEN",
+      },
+    });
+  }
+
+  await prisma.opsNotification.create({
+    data: {
+      branchId: gujrat.id,
+      severity: "INFO",
+      type: "DAY_CLOSE_REMINDER",
+      title: "Welcome to Phase 6 alerts",
+      body: "Low stock and overdue transfers auto-refresh when you open Alerts.",
+    },
+  });
+
   console.log("Seeded Rezist ERP:");
   console.log("  admin@rezist.pk / rezist123");
   console.log("  Manager PIN for void: 4321");
@@ -660,7 +811,8 @@ async function main() {
     warehouse.code,
     ...retailBranches.map((b) => b.code)
   );
-  console.log("  Phase 4: delivery, barcode POS, offline queue, mobile API");
+  console.log("  Phase 5: analytics, forecast, food safety, loyalty deep, payroll stubs");
+  console.log("  Phase 6: scoreboard, handover, suppliers, alerts, export packs");
 }
 
 main()

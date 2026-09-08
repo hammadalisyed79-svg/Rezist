@@ -37,6 +37,11 @@ model User {
   shifts          PosShift[]
   attendance      Attendance[]
   promotions      Promotion[]      @relation("PromotionCreatedBy")
+  qualityChecks   QualityCheck[]
+  payrollStubs    PayrollStub[]
+  handoversFrom   ShiftHandover[] @relation("HandoverFrom")
+  handoversTo     ShiftHandover[] @relation("HandoverTo")
+  notificationsRead OpsNotification[] @relation("NotificationReader")
 }
 
 model Branch {
@@ -68,6 +73,10 @@ model Branch {
   promotions     Promotion[]
   customers      Customer[]
   riders         DeliveryRider[]
+  qualityChecks  QualityCheck[]
+  payrollStubs   PayrollStub[]
+  handovers      ShiftHandover[]
+  notifications  OpsNotification[]
 }
 
 model Category {
@@ -277,18 +286,20 @@ model Sale {
   shift         PosShift? @relation(fields: [shiftId], references: [id])
   tillNo        String?
   channel       String    @default("POS")
-  subtotal      Float
-  tax           Float     @default(0)
-  total         Float
-  paymentMethod String    @default("CASH")
-  voided        Boolean   @default(false)
-  voidReason    String?
-  offlineKey    String?   @unique
-  createdAt     DateTime  @default(now())
-  lines         SaleLine[]
-  onlineOrder   OnlineOrder?
-  customerId    String?
-  customer      Customer? @relation(fields: [customerId], references: [id])
+  subtotal         Float
+  tax              Float     @default(0)
+  discount         Float     @default(0)
+  loyaltyRedeemed  Int       @default(0)
+  total            Float
+  paymentMethod    String    @default("CASH")
+  voided           Boolean   @default(false)
+  voidReason       String?
+  offlineKey       String?   @unique
+  createdAt        DateTime  @default(now())
+  lines            SaleLine[]
+  onlineOrder      OnlineOrder?
+  customerId       String?
+  customer         Customer? @relation(fields: [customerId], references: [id])
 }
 
 model SaleLine {
@@ -354,6 +365,9 @@ model WastageRecord {
   product      Product  @relation(fields: [productId], references: [id])
   quantity     Float
   reason       String
+  category     String   @default("SPOILAGE") // SPOILAGE | EXPIRED | DAMAGE | UNSOLD | OTHER
+  unitCost     Float    @default(0)
+  costTotal    Float    @default(0)
   recordedById String?
   recordedBy   User?    @relation(fields: [recordedById], references: [id])
   createdAt    DateTime @default(now())
@@ -514,5 +528,106 @@ model MobileApiToken {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   lastUsedAt DateTime?
+}
+
+/// Food safety / HACCP-style checks (company-owned ops — Phase 5)
+model QualityCheck {
+  id           String   @id @default(cuid())
+  branchId     String
+  branch       Branch   @relation(fields: [branchId], references: [id])
+  checkType    String   // TEMP | CLEANING | RECEIVING | RECALL | EQUIPMENT
+  title        String
+  status       String   @default("PASS") // PASS | FAIL | PENDING
+  value        Float?   // e.g. temperature °C
+  unit         String?
+  relatedLotId String?
+  notes        String?
+  checkedById  String?
+  checkedBy    User?    @relation(fields: [checkedById], references: [id])
+  checkedAt    DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([branchId, checkedAt])
+  @@index([checkType, status])
+}
+
+/// Light payroll stubs for export to external payroll (Phase 5)
+model PayrollStub {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id])
+  periodStart DateTime
+  periodEnd   DateTime
+  basePay     Float    @default(0)
+  allowances  Float    @default(0)
+  deductions  Float    @default(0)
+  daysPresent Int      @default(0)
+  status      String   @default("DRAFT") // DRAFT | EXPORTED
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([periodStart, periodEnd])
+  @@index([branchId])
+}
+
+/// Phase 6 — shift handover / till reconciliation
+model ShiftHandover {
+  id            String    @id @default(cuid())
+  branchId      String
+  branch        Branch    @relation(fields: [branchId], references: [id])
+  fromUserId    String
+  fromUser      User      @relation("HandoverFrom", fields: [fromUserId], references: [id])
+  toUserId      String?
+  toUser        User?     @relation("HandoverTo", fields: [toUserId], references: [id])
+  shiftId       String?
+  tillNo        String?
+  expectedCash  Float     @default(0)
+  countedCash   Float     @default(0)
+  variance      Float     @default(0)
+  salesTotal    Float     @default(0)
+  saleCount     Int       @default(0)
+  wastageQty    Float     @default(0)
+  openOrders    Int       @default(0)
+  notes         String?
+  status        String    @default("OPEN") // OPEN | ACCEPTED | CLOSED
+  createdAt     DateTime  @default(now())
+  closedAt      DateTime?
+
+  @@index([branchId, createdAt])
+}
+
+/// Phase 6 — ops alerts (low stock, overdue transfers, etc.)
+model OpsNotification {
+  id         String    @id @default(cuid())
+  branchId   String?
+  branch     Branch?   @relation(fields: [branchId], references: [id])
+  severity   String    @default("WARN") // INFO | WARN | CRITICAL
+  type       String
+  title      String
+  body       String
+  entityType String?
+  entityId   String?
+  readAt     DateTime?
+  readById   String?
+  readBy     User?     @relation("NotificationReader", fields: [readById], references: [id])
+  createdAt  DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([readAt, severity])
+}
+
+/// Phase 6 — HQ scheduled export presets (manual run / CSV packs)
+model ReportPreset {
+  id          String   @id @default(cuid())
+  name        String
+  reportType  String   // SCOREBOARD | WASTAGE | SUPPLIERS | SALES | HANDOVER
+  cadence     String   @default("DAILY") // DAILY | WEEKLY | ON_DEMAND
+  active      Boolean  @default(true)
+  notes       String?
+  lastRunAt   DateTime?
+  createdAt   DateTime @default(now())
 }
 

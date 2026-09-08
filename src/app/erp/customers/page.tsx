@@ -22,9 +22,11 @@ export default async function CustomersPage() {
     <ErpPage user={user}>
       <header className="page-header">
         <div>
-          <p className="eyebrow">CRM</p>
+          <p className="eyebrow">CRM · Phase 5</p>
           <h1>Customers & loyalty</h1>
-          <p className="muted">Phone-based profiles · Rs 100 = 1 point · birthday cake reminders.</p>
+          <p className="muted">
+            Tiers · redeem at POS · birthday cake reminders · Rs 100 = 1 pt (tier bonus).
+          </p>
         </div>
       </header>
       <CustomersClient customers={customers} />

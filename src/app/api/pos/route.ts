@@ -6,7 +6,12 @@ import { adjustStock, getBranchPrice } from "@/lib/inventory";
 import { nextDocNo, resolveBranchScope } from "@/lib/utils";
 import { writeAudit } from "@/lib/audit";
 import { can } from "@/lib/permissions";
-import { upsertCustomerFromOrder } from "@/lib/pricing";
+import {
+  earnPoints,
+  getLoyaltyTier,
+  maxRedeemable,
+  redeemDiscountPkr,
+} from "@/lib/loyalty";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -26,6 +31,20 @@ export async function GET(req: NextRequest) {
       include: { category: true },
     });
     return NextResponse.json({ product });
+  }
+
+  const phone = req.nextUrl.searchParams.get("phone")?.replace(/\s+/g, "");
+  if (phone) {
+    const customer = await prisma.customer.findUnique({ where: { phone } });
+    if (!customer) return NextResponse.json({ customer: null });
+    const tier = getLoyaltyTier(customer.loyaltyPoints);
+    return NextResponse.json({
+      customer: {
+        ...customer,
+        tier: tier.tier,
+        tierLabel: tier.label,
+      },
+    });
   }
 
   const sales = await prisma.sale.findMany({
@@ -94,6 +113,20 @@ export async function POST(req: NextRequest) {
       for (const line of sale.lines) {
         await adjustStock(sale.branchId, line.productId, line.quantity);
       }
+      if (sale.customerId && sale.loyaltyRedeemed > 0) {
+        await prisma.customer.update({
+          where: { id: sale.customerId },
+          data: { loyaltyPoints: { increment: sale.loyaltyRedeemed } },
+        });
+        await prisma.loyaltyLedger.create({
+          data: {
+            customerId: sale.customerId,
+            delta: sale.loyaltyRedeemed,
+            reason: `Void restore redeem ${sale.saleNo}`,
+            saleId: sale.id,
+          },
+        });
+      }
       await prisma.sale.update({
         where: { id: sale.id },
         data: {
@@ -124,6 +157,7 @@ export async function POST(req: NextRequest) {
       paymentMethod?: string;
       customerPhone?: string;
       customerName?: string;
+      redeemPoints?: number;
       items: { productId: string; quantity: number }[];
       createdAt?: string;
     }[] = body.sales || [];
@@ -138,6 +172,7 @@ export async function POST(req: NextRequest) {
           paymentMethod: q.paymentMethod,
           customerPhone: q.customerPhone,
           customerName: q.customerName,
+          redeemPoints: q.redeemPoints,
           items: q.items,
           offlineKey: q.clientKey,
         };
@@ -220,17 +255,74 @@ async function createSale(
     }
 
     let customerId: string | null = null;
+    let loyaltyRedeemed = 0;
+    let discount = 0;
     const phone = body.customerPhone ? String(body.customerPhone).replace(/\s+/g, "") : "";
+    const wantRedeem = Math.max(0, Math.floor(Number(body.redeemPoints || 0)));
+
     if (phone) {
-      const customer = await upsertCustomerFromOrder({
-        name: String(body.customerName || "POS Guest"),
-        phone,
-        branchId,
-        orderTotal: subtotal,
-      });
+      let customer = await prisma.customer.findUnique({ where: { phone } });
+      if (!customer) {
+        customer = await prisma.customer.create({
+          data: {
+            phone,
+            name: String(body.customerName || "POS Guest"),
+            preferredBranchId: branchId,
+            loyaltyPoints: 0,
+          },
+        });
+      }
+
+      if (wantRedeem > 0) {
+        loyaltyRedeemed = Math.min(maxRedeemable(subtotal, customer.loyaltyPoints), wantRedeem);
+        discount = redeemDiscountPkr(loyaltyRedeemed);
+        if (loyaltyRedeemed > 0) {
+          await prisma.customer.update({
+            where: { id: customer.id },
+            data: { loyaltyPoints: { decrement: loyaltyRedeemed } },
+          });
+          await prisma.loyaltyLedger.create({
+            data: {
+              customerId: customer.id,
+              delta: -loyaltyRedeemed,
+              reason: "POS redeem (1 pt = Rs 1)",
+            },
+          });
+          customer = await prisma.customer.findUniqueOrThrow({ where: { id: customer.id } });
+        }
+      }
+
+      const netForEarn = Math.max(0, subtotal - discount);
+      const earned = earnPoints(netForEarn, customer.loyaltyPoints);
+      if (earned > 0) {
+        await prisma.customer.update({
+          where: { id: customer.id },
+          data: {
+            name: String(body.customerName || customer.name),
+            loyaltyPoints: { increment: earned },
+            preferredBranchId: customer.preferredBranchId || branchId,
+          },
+        });
+        await prisma.loyaltyLedger.create({
+          data: {
+            customerId: customer.id,
+            delta: earned,
+            reason: "Order earn (tier-adjusted)",
+          },
+        });
+      } else {
+        await prisma.customer.update({
+          where: { id: customer.id },
+          data: {
+            name: String(body.customerName || customer.name),
+            preferredBranchId: customer.preferredBranchId || branchId,
+          },
+        });
+      }
       customerId = customer.id;
     }
 
+    const total = Math.max(0, subtotal - discount);
     const count = await prisma.sale.count();
     return prisma.sale.create({
       data: {
@@ -242,7 +334,9 @@ async function createSale(
         channel: offlineKey ? "POS_OFFLINE" : "POS",
         subtotal,
         tax: 0,
-        total: subtotal,
+        discount,
+        loyaltyRedeemed,
+        total,
         paymentMethod: String(body.paymentMethod || "CASH"),
         customerId,
         offlineKey,
@@ -252,17 +346,15 @@ async function createSale(
     });
   });
 
-  if (sale.customerId) {
-    // loyalty already applied via upsertCustomerFromOrder when phone present
-  }
-
   await writeAudit({
     actor: session as never,
     action: "SALE_CREATE",
     entityType: "Sale",
     entityId: sale.id,
     branchId,
-    summary: `POS ${sale.saleNo} · ${sale.tillNo} · ${sale.total}`,
+    summary: `POS ${sale.saleNo} · ${sale.tillNo} · ${sale.total}${
+      sale.loyaltyRedeemed ? ` · −${sale.loyaltyRedeemed} pts` : ""
+    }`,
   });
 
   return sale;

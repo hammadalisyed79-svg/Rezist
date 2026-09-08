@@ -15,6 +15,8 @@ export function WastageClient({
     id: string;
     quantity: number;
     reason: string;
+    category?: string;
+    costTotal?: number;
     createdAt: string | Date;
     product: { name: string };
     branch: { name: string };
@@ -37,6 +39,7 @@ export function WastageClient({
         productId: fd.get("productId"),
         quantity: Number(fd.get("quantity")),
         reason: fd.get("reason"),
+        category: fd.get("category"),
       }),
     });
     const data = await res.json();
@@ -81,6 +84,16 @@ export function WastageClient({
           <input name="quantity" type="number" min="0.01" step="0.01" required />
         </label>
         <label>
+          Category
+          <select name="category" defaultValue="SPOILAGE">
+            <option value="SPOILAGE">Spoilage</option>
+            <option value="EXPIRED">Expired</option>
+            <option value="DAMAGE">Damage</option>
+            <option value="UNSOLD">Unsold</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </label>
+        <label>
           Reason
           <input name="reason" defaultValue="Unsold end of day" required />
         </label>
@@ -97,6 +110,8 @@ export function WastageClient({
               <th>Branch</th>
               <th>Product</th>
               <th>Qty</th>
+              <th>Category</th>
+              <th>Cost</th>
               <th>Reason</th>
             </tr>
           </thead>
@@ -107,6 +122,8 @@ export function WastageClient({
                 <td>{r.branch.name}</td>
                 <td>{r.product.name}</td>
                 <td>{r.quantity}</td>
+                <td>{r.category || "SPOILAGE"}</td>
+                <td>{r.costTotal != null ? r.costTotal : "—"}</td>
                 <td>{r.reason}</td>
               </tr>
             ))}
