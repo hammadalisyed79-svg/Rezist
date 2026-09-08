@@ -1,31 +1,36 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { brand } from "@/lib/brand";
 import { CartBadge } from "@/components/CartBadge";
+import { LocationPill } from "@/components/LocationPill";
 
-export function SiteHeader() {
+export function SiteHeader({
+  cities = [],
+  showLocation = true,
+}: {
+  cities?: string[];
+  showLocation?: boolean;
+}) {
   return (
-    <header className="site-header">
-      <Link href="/" className="logo">
-        <Image src={brand.logo} alt={`${brand.name} logo`} width={48} height={48} className="logo-img" priority />
-        <span>
-          <strong>{brand.name}</strong>
-          <small>{brand.tagline}</small>
-        </span>
+    <header className="lz-header">
+      <div className="lz-header-left">
+        {showLocation ? <LocationPill cities={cities} /> : <span />}
+      </div>
+      <Link href="/" className="lz-logo">
+        <Image src={brand.logo} alt={brand.name} width={44} height={44} className="lz-logo-img" priority />
+        <span className="lz-logo-text">{brand.shortName.toUpperCase()}</span>
       </Link>
-      <nav>
-        <Link href="/order">Order Online</Link>
-        <Link href="/menu">Menu</Link>
-        <Link href="/branches">Branches</Link>
-        <Link href="/contact">Contact</Link>
-        <CartBadge />
-        <a href={brand.phoneHref} className="nav-call">
-          Call
-        </a>
-        <Link href="/erp/login" className="nav-erp">
-          Staff
+      <div className="lz-header-right">
+        <Link href="/menu" className="lz-icon-link" aria-label="Browse menu">
+          ⌕
         </Link>
-      </nav>
+        <Link href="/branches" className="lz-icon-link" aria-label="Branches">
+          ◉
+        </Link>
+        <CartBadge />
+      </div>
     </header>
   );
 }

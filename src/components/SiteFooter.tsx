@@ -10,6 +10,12 @@ export function SiteFooter() {
         <div>
           <strong>{brand.name}</strong>
           <p>{brand.slogan}</p>
+          <nav className="lz-footer-nav" aria-label="Footer">
+            <Link href="/menu">Menu</Link>
+            <Link href="/order">Order</Link>
+            <Link href="/branches">Branches</Link>
+            <Link href="/contact">Contact</Link>
+          </nav>
         </div>
       </div>
       <div className="footer-meta">

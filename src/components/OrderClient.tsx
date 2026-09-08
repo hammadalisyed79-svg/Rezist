@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatPKR } from "@/lib/utils";
 import { brand } from "@/lib/brand";
 import { useCart } from "@/components/CartProvider";
-import { AddToCartButton } from "@/components/AddToCartButton";
-import Image from "next/image";
+import { ProductCard } from "@/components/ProductCard";
 
 type Branch = { id: string; name: string; city: string };
 type Product = {
@@ -14,6 +13,7 @@ type Product = {
   listPrice: number;
   description: string | null;
   imageUrl: string | null;
+  allergens?: string | null;
   category?: { name: string } | null;
 };
 
@@ -134,28 +134,16 @@ export function OrderClient({
           </label>
         </div>
 
-        <div className="product-shop-grid">
+        <div className="lz-product-grid">
           {products.map((p) => (
-            <article key={p.id} className="product-card">
-              <div className="product-card-media">
-                <Image src={p.imageUrl || brand.heroImage} alt={p.name} fill sizes="200px" />
-              </div>
-              <div className="product-card-body">
-                <small>{p.category?.name}</small>
-                <h3>{p.name}</h3>
-                <div className="product-card-row">
-                  <strong>{formatPKR(p.listPrice)}</strong>
-                  <AddToCartButton productId={p.id} />
-                </div>
-              </div>
-            </article>
+            <ProductCard key={p.id} product={p} />
           ))}
         </div>
       </section>
 
-      <form className="order-cart" onSubmit={placeOrder}>
-        <h2>Your cart</h2>
-        {lines.length === 0 ? <p className="muted">Add desserts from the menu</p> : null}
+      <form className="order-cart lz-cart-sticky" onSubmit={placeOrder}>
+        <h2>Cart</h2>
+        {lines.length === 0 ? <p className="muted">Your cart is empty</p> : null}
         <ul>
           {lines.map((l) => (
             <li key={l.product.id}>

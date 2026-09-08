@@ -11,13 +11,15 @@ export default async function BranchesPublicPage() {
   const cities = [...new Set(branches.map((b) => b.city))];
 
   return (
-    <div className="site">
-      <SiteHeader />
-      <main className="section">
-        <div className="section-head">
-          <p className="eyebrow">Locations</p>
-          <h1>Choose your nearest branch</h1>
-          <p>{cities.join(" · ")} — Layers-style city coverage, Rezist brand.</p>
+    <div className="site lz-store">
+      <SiteHeader cities={cities} />
+      <main className="lz-shop-section">
+        <div className="lz-shop-head">
+          <div>
+            <p className="eyebrow">Locations</p>
+            <h1>Choose your nearest branch</h1>
+            <p className="muted">{cities.join(" · ")}</p>
+          </div>
         </div>
         {cities.map((city) => (
           <section key={city} className="menu-cat">

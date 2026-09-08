@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { OrderClient } from "@/components/OrderClient";
+import { CategoryRail } from "@/components/CategoryRail";
 
 export default async function OrderPage({
   searchParams,
@@ -9,7 +10,7 @@ export default async function OrderPage({
   searchParams: Promise<{ branchId?: string }>;
 }) {
   const sp = await searchParams;
-  const [branches, products] = await Promise.all([
+  const [branches, products, categories] = await Promise.all([
     prisma.branch.findMany({
       where: { active: true, type: "RETAIL" },
       orderBy: [{ city: "asc" }, { name: "asc" }],
@@ -19,17 +20,31 @@ export default async function OrderPage({
       include: { category: true },
       orderBy: { name: "asc" },
     }),
+    prisma.category.findMany({
+      where: { slug: { not: "raw-materials" } },
+      include: { _count: { select: { products: { where: { isPublic: true, active: true } } } } },
+      orderBy: { sortOrder: "asc" },
+    }),
   ]);
 
+  const cities = [...new Set(branches.map((b) => b.city))];
+
   return (
-    <div className="site">
-      <SiteHeader />
-      <main className="section">
-        <div className="section-head">
-          <p className="eyebrow">Checkout</p>
-          <h1>Complete your order</h1>
-          <p>Select city & branch, then confirm pickup or delivery — Layers-style ordering.</p>
+    <div className="site lz-store">
+      <SiteHeader cities={cities} />
+      <main className="lz-shop-section">
+        <div className="lz-shop-head">
+          <div>
+            <p className="eyebrow">Checkout</p>
+            <h1>Your order</h1>
+            <p className="muted">Select pickup or delivery, confirm branch, place order.</p>
+          </div>
         </div>
+        <CategoryRail
+          categories={categories
+            .filter((c) => c._count.products > 0)
+            .map((c) => ({ id: c.id, name: c.name, slug: c.slug, count: c._count.products }))}
+        />
         <OrderClient
           branches={branches}
           products={products}

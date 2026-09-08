@@ -9,15 +9,18 @@ export default async function ContactPage() {
     where: { active: true, type: "RETAIL" },
     orderBy: [{ city: "asc" }, { name: "asc" }],
   });
+  const cities = [...new Set(branches.map((b) => b.city))];
 
   return (
-    <div className="site">
-      <SiteHeader />
-      <main className="section">
-        <div className="section-head">
-          <p className="eyebrow">Contact</p>
-          <h1>We are your neighborhood bakers</h1>
-          <p>{brand.slogan} — reach HQ or your nearest branch.</p>
+    <div className="site lz-store">
+      <SiteHeader cities={cities} />
+      <main className="lz-shop-section">
+        <div className="lz-shop-head">
+          <div>
+            <p className="eyebrow">Contact</p>
+            <h1>We are your neighborhood bakers</h1>
+            <p className="muted">{brand.slogan} — reach HQ or your nearest branch.</p>
+          </div>
         </div>
 
         <div className="contact-grid">
