@@ -5,52 +5,52 @@ import { formatPKR } from "@/lib/utils";
 import { brand } from "@/lib/brand";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { TrustBar } from "@/components/TrustBar";
+import { HomeOrderStart } from "@/components/HomeOrderStart";
+import { AddToCartButton } from "@/components/AddToCartButton";
 
 export default async function HomePage() {
-  const branches = await prisma.branch.findMany({
-    where: { active: true, type: "RETAIL" },
-    orderBy: { city: "asc" },
-    take: 6,
-  });
-  const featured = await prisma.product.findMany({
-    where: { active: true, isPublic: true, isSellable: true, type: "FINISHED" },
-    take: 4,
-    orderBy: { listPrice: "desc" },
-  });
+  const [branches, categories, bestsellers] = await Promise.all([
+    prisma.branch.findMany({
+      where: { active: true, type: "RETAIL" },
+      orderBy: [{ city: "asc" }, { name: "asc" }],
+    }),
+    prisma.category.findMany({
+      where: { slug: { not: "raw-materials" } },
+      include: {
+        _count: { select: { products: { where: { active: true, isPublic: true } } } },
+      },
+      orderBy: { sortOrder: "asc" },
+    }),
+    prisma.product.findMany({
+      where: { active: true, isPublic: true, isSellable: true, type: "FINISHED" },
+      include: { category: true },
+      take: 8,
+      orderBy: { listPrice: "desc" },
+    }),
+  ]);
+
+  const cities = [...new Set(branches.map((b) => b.city))];
 
   return (
     <div className="site">
       <SiteHeader />
-      <section className="hero">
+      <section className="hero layers-hero">
         <div className="hero-copy">
-          <Image
-            src={brand.logo}
-            alt={brand.name}
-            width={96}
-            height={96}
-            className="hero-logo"
-            priority
-          />
+          <Image src={brand.logo} alt={brand.name} width={88} height={88} className="hero-logo" priority />
           <p className="brand-lockup">{brand.name}</p>
           <p className="tagline-line">{brand.tagline}</p>
           <h1>{brand.slogan}</h1>
           <p className="lede">
-            Premium dessert shop from Gujrat across Pakistan — Cadbury cakes, brownies, and daily
-            bake. Order pickup from your nearest branch.
+            Order like Pakistan&apos;s top dessert chains — pick pickup or delivery, choose your
+            branch, then shop cakes, brownies, cupcakes and more.
           </p>
-          <div className="hero-cta">
-            <Link className="btn" href="/order">
-              Order pickup
-            </Link>
-            <a className="btn-ghost" href={brand.phoneHref}>
-              Call {brand.phone}
-            </a>
-          </div>
+          <HomeOrderStart branches={branches} cities={cities} />
         </div>
         <div className="hero-visual">
           <Image
             src={brand.heroImage}
-            alt="Rezist signature chocolate cake with branded box"
+            alt="Rezist signature chocolate cake"
             fill
             className="hero-photo"
             priority
@@ -59,52 +59,70 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <TrustBar />
+
       <section className="section">
         <div className="section-head">
-          <p className="eyebrow">Signature</p>
-          <h2>Ir-Rezistable bake</h2>
-          <p>Menu live from the Rezist ERP catalog — same SKUs your branches sell.</p>
+          <p className="eyebrow">Shop by category</p>
+          <h2>Menu categories</h2>
         </div>
-        <div className="menu-row">
-          {featured.map((p) => (
-            <article key={p.id} className="menu-item">
-              <h3>{p.name}</h3>
-              <p>{p.description}</p>
-              <strong>{formatPKR(p.listPrice)}</strong>
+        <div className="category-chips">
+          {categories
+            .filter((c) => c._count.products > 0)
+            .map((c) => (
+              <Link key={c.id} href={`/menu?cat=${c.slug}`} className="category-chip">
+                <strong>{c.name}</strong>
+                <span>{c._count.products} items</span>
+              </Link>
+            ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <p className="eyebrow">Bestsellers</p>
+          <h2>Most ordered desserts</h2>
+        </div>
+        <div className="product-shop-grid">
+          {bestsellers.map((p) => (
+            <article key={p.id} className="product-card">
+              <div className="product-card-media">
+                <Image
+                  src={p.imageUrl || brand.heroImage}
+                  alt={p.name}
+                  fill
+                  sizes="240px"
+                />
+              </div>
+              <div className="product-card-body">
+                <small>{p.category?.name}</small>
+                <h3>{p.name}</h3>
+                <p>{p.description}</p>
+                <div className="product-card-row">
+                  <strong>{formatPKR(p.listPrice)}</strong>
+                  <AddToCartButton productId={p.id} />
+                </div>
+              </div>
             </article>
           ))}
         </div>
-        <Link className="text-link" href="/menu">
-          Full menu →
+        <Link className="btn" href="/menu">
+          View full menu
         </Link>
-      </section>
-
-      <section className="section gallery-section">
-        <div className="section-head">
-          <p className="eyebrow">From our kitchen</p>
-          <h2>Moments from Rezistpk</h2>
-        </div>
-        <div className="brand-gallery">
-          {brand.gallery.map((src, i) => (
-            <div key={src} className="gallery-frame">
-              <Image src={src} alt={`Rezist bakery photo ${i + 1}`} fill sizes="33vw" />
-            </div>
-          ))}
-        </div>
       </section>
 
       <section className="section muted-section">
         <div className="section-head">
-          <h2>Branches</h2>
-          <p>HQ on Rehman Shaheed Road, Gujrat — expanding across Punjab.</p>
+          <p className="eyebrow">Branches</p>
+          <h2>Choose your nearest branch</h2>
         </div>
-        <div className="branch-row">
+        <div className="branch-grid">
           {branches.map((b) => (
-            <article key={b.id}>
+            <article key={b.id} className="branch-card">
+              <p className="city">{b.city}</p>
               <h3>{b.name}</h3>
-              <p>
-                {b.city} · {b.address}
-              </p>
+              <p>{b.address}</p>
+              <Link href={`/order?branchId=${b.id}`}>Order from here →</Link>
             </article>
           ))}
         </div>

@@ -26,9 +26,9 @@ export default async function OrderPage({
       <SiteHeader />
       <main className="section">
         <div className="section-head">
-          <p className="eyebrow">Order</p>
-          <h1>Pickup or delivery</h1>
-          <p>Stock and pricing come from the live ERP for your chosen branch.</p>
+          <p className="eyebrow">Checkout</p>
+          <h1>Complete your order</h1>
+          <p>Select city & branch, then confirm pickup or delivery — Layers-style ordering.</p>
         </div>
         <OrderClient
           branches={branches}

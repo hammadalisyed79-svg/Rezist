@@ -16,20 +16,26 @@ export default async function BranchesPublicPage() {
       <main className="section">
         <div className="section-head">
           <p className="eyebrow">Locations</p>
-          <h1>Find Rezist near you</h1>
-          <p>{cities.join(" · ")}</p>
+          <h1>Choose your nearest branch</h1>
+          <p>{cities.join(" · ")} — Layers-style city coverage, Rezist brand.</p>
         </div>
-        <div className="branch-grid">
-          {branches.map((b) => (
-            <article key={b.id} className="branch-card">
-              <h2>{b.name}</h2>
-              <p className="city">{b.city}</p>
-              <p>{b.address}</p>
-              {b.phone ? <p>{b.phone}</p> : null}
-              <Link href={`/order?branchId=${b.id}`}>Order from this branch →</Link>
-            </article>
-          ))}
-        </div>
+        {cities.map((city) => (
+          <section key={city} className="menu-cat">
+            <h2>{city}</h2>
+            <div className="branch-grid">
+              {branches
+                .filter((b) => b.city === city)
+                .map((b) => (
+                  <article key={b.id} className="branch-card">
+                    <h3>{b.name}</h3>
+                    <p>{b.address}</p>
+                    {b.phone ? <p>{b.phone}</p> : null}
+                    <Link href={`/order?branchId=${b.id}`}>Order from this branch →</Link>
+                  </article>
+                ))}
+            </div>
+          </section>
+        ))}
       </main>
       <SiteFooter />
     </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Source_Sans_3 } from "next/font/google";
+import { CartProvider } from "@/components/CartProvider";
 import "./globals.css";
 
 const display = Fraunces({
@@ -15,15 +16,17 @@ const body = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "Rezist! IF YOU CAN — Dessert Shop & Bakery ERP",
+  title: "Rezist! IF YOU CAN — Order Online",
   description:
-    "An Ir-Rezistable Delight. Multi-branch dessert shop from Gujrat across Pakistan. Order cakes, brownies, and daily bake.",
+    "An Ir-Rezistable Delight. Order cakes, brownies, cupcakes and desserts online for pickup or delivery across Pakistan.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${display.variable} ${body.variable} antialiased`}>{children}</body>
+      <body className={`${display.variable} ${body.variable} antialiased`}>
+        <CartProvider>{children}</CartProvider>
+      </body>
     </html>
   );
 }

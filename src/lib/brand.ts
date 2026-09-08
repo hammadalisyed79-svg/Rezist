@@ -17,4 +17,14 @@ export const brand = {
   logo: "/brand/logo.jpg",
   heroImage: "/brand/hero-cake.jpg",
   gallery: ["/brand/gallery-1.jpg", "/brand/gallery-2.jpg", "/brand/gallery-3.jpg"],
+  /** Layers.pk-inspired UX rules for the public site */
+  websiteModel: "layers.pk",
+  freeDeliveryMin: 1000,
+  colors: {
+    black: "#0a0a0a",
+    gold: "#c08f3c",
+    goldSoft: "#d4a84b",
+    cream: "#f7f1e6",
+    muted: "#b7aa98",
+  },
 } as const;

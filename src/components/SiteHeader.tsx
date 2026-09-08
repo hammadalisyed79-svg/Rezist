@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { brand } from "@/lib/brand";
+import { CartBadge } from "@/components/CartBadge";
 
 export function SiteHeader() {
   return (
@@ -13,14 +14,16 @@ export function SiteHeader() {
         </span>
       </Link>
       <nav>
+        <Link href="/order">Order Online</Link>
         <Link href="/menu">Menu</Link>
         <Link href="/branches">Branches</Link>
-        <Link href="/order">Order</Link>
-        <a href={brand.facebookUrl} target="_blank" rel="noreferrer">
-          Facebook
+        <Link href="/contact">Contact</Link>
+        <CartBadge />
+        <a href={brand.phoneHref} className="nav-call">
+          Call
         </a>
         <Link href="/erp/login" className="nav-erp">
-          Staff ERP
+          Staff
         </Link>
       </nav>
     </header>
