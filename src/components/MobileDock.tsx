@@ -24,12 +24,17 @@ export function MobileDock() {
             ? pathname === "/"
             : pathname === l.href || pathname?.startsWith(`${l.href}/`);
         return (
-          <Link key={l.href} href={l.href} className={active ? "active" : undefined}>
+          <Link
+            key={l.href}
+            href={l.href}
+            className={active ? "active" : undefined}
+            aria-current={active ? "page" : undefined}
+          >
             <span className="lz-dock-icon" aria-hidden>
               {l.icon}
               {l.cart && count > 0 ? <em>{count > 9 ? "9+" : count}</em> : null}
             </span>
-            <span>{l.label}</span>
+            <span>{l.cart && count === 0 ? "Cart" : l.label}</span>
           </Link>
         );
       })}

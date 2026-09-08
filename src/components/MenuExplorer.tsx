@@ -6,6 +6,7 @@ import { CategoryRail } from "@/components/CategoryRail";
 
 type Product = {
   id: string;
+  sku?: string;
   name: string;
   description: string | null;
   listPrice: number;

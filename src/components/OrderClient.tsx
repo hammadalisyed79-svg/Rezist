@@ -10,6 +10,7 @@ import { ProductCard } from "@/components/ProductCard";
 type Branch = { id: string; name: string; city: string };
 type Product = {
   id: string;
+  sku?: string;
   name: string;
   listPrice: number;
   description: string | null;
@@ -96,7 +97,6 @@ export function OrderClient({
       }
       setOrderNo(data.order.orderNo);
       clear();
-      setMsg(`Order placed: ${data.order.orderNo}. The branch will confirm shortly.`);
       setShowCart(false);
     } finally {
       setSubmitting(false);
@@ -104,25 +104,56 @@ export function OrderClient({
   }
 
   if (orderNo) {
+    const waText = encodeURIComponent(
+      `Hi Rezist, I placed order ${orderNo}${selectedBranch ? ` for ${selectedBranch.name}` : ""}.`
+    );
+    const waHref = `https://wa.me/923314213137?text=${waText}`;
     return (
-      <div className="lz-success">
-        <p className="eyebrow">Confirmed</p>
-        <h2>Thank you — order {orderNo}</h2>
+      <div className="lz-success" role="status">
+        <p className="eyebrow">Order received</p>
+        <h2>Thank you — {orderNo}</h2>
         <p>
-          We received your {fulfillment === "DELIVERY" ? "delivery" : "pickup"} request
-          {selectedBranch ? ` at ${selectedBranch.name}` : ""}. Keep your phone nearby.
+          Your {fulfillment === "DELIVERY" ? "delivery" : "pickup"} request
+          {selectedBranch ? ` at ${selectedBranch.name}` : ""} is with the kitchen. Keep your phone
+          nearby for confirmation.
         </p>
+        <ul className="lz-success-meta">
+          <li>
+            <strong>Mode</strong> {fulfillment === "DELIVERY" ? "Delivery" : "Pickup"}
+          </li>
+          {selectedBranch ? (
+            <li>
+              <strong>Lounge</strong> {selectedBranch.name}
+            </li>
+          ) : null}
+          <li>
+            <strong>Next</strong> Branch confirms shortly
+          </li>
+        </ul>
         <div className="hero-cta">
           <Link className="btn" href="/menu">
             Order more
           </Link>
-          <a className="btn-ghost" href={brand.phoneHref}>
-            Call branch
+          <a className="btn-ghost" href={waHref} target="_blank" rel="noreferrer">
+            WhatsApp us
+          </a>
+          <a className="text-link" href={brand.phoneHref}>
+            Call {brand.phone}
           </a>
         </div>
       </div>
     );
   }
+
+  const emptyCart = (
+    <div className="lz-empty lz-cart-empty">
+      <h3>Your cart is empty</h3>
+      <p>Browse cakes, brownies and more — add what you crave, then checkout here.</p>
+      <Link className="btn" href="/menu">
+        Browse menu
+      </Link>
+    </div>
+  );
 
   const cartForm = (
     <form className="order-cart lz-cart-sticky" onSubmit={placeOrder}>
@@ -132,52 +163,74 @@ export function OrderClient({
           Close
         </button>
       </div>
-      {lines.length === 0 ? <p className="muted">Your cart is empty — add desserts from the menu.</p> : null}
-      <ul>
-        {lines.map((l) => (
-          <li key={l.product.id}>
-            <span>
-              {l.product.name}
-              <div className="qty">
-                <button type="button" onClick={() => setQty(l.product.id, l.qty - 1, l.product.listPrice)}>
-                  −
-                </button>
-                <span>{l.qty}</span>
-                <button type="button" onClick={() => setQty(l.product.id, l.qty + 1, l.product.listPrice)}>
-                  +
-                </button>
-              </div>
-            </span>
-            <span>{formatPKR(l.total)}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="total">{formatPKR(total)}</p>
-      {deliveryNote ? <p className="muted">{deliveryNote}</p> : null}
-      <label>
-        Name
-        <input value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
-      </label>
-      <label>
-        Phone
-        <input
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          required
-          autoComplete="tel"
-          inputMode="tel"
-        />
-      </label>
-      {fulfillment === "DELIVERY" ? (
-        <label>
-          Delivery address
-          <input value={address} onChange={(e) => setAddress(e.target.value)} required autoComplete="street-address" />
-        </label>
-      ) : null}
-      <button className="btn" type="submit" disabled={!lines.length || !(branchId || selectedBranch) || submitting}>
-        {submitting ? "Placing…" : "Place order"}
-      </button>
-      {msg ? <p className="error">{msg}</p> : null}
+      {lines.length === 0 ? (
+        emptyCart
+      ) : (
+        <>
+          <ul>
+            {lines.map((l) => (
+              <li key={l.product.id}>
+                <span>
+                  {l.product.name}
+                  <div className="qty">
+                    <button
+                      type="button"
+                      aria-label={`Decrease ${l.product.name}`}
+                      onClick={() => setQty(l.product.id, l.qty - 1, l.product.listPrice)}
+                    >
+                      −
+                    </button>
+                    <span>{l.qty}</span>
+                    <button
+                      type="button"
+                      aria-label={`Increase ${l.product.name}`}
+                      onClick={() => setQty(l.product.id, l.qty + 1, l.product.listPrice)}
+                    >
+                      +
+                    </button>
+                  </div>
+                </span>
+                <span>{formatPKR(l.total)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="total">{formatPKR(total)}</p>
+          {deliveryNote ? <p className="muted">{deliveryNote}</p> : null}
+          <label>
+            Name
+            <input value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
+          </label>
+          <label>
+            Phone
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              autoComplete="tel"
+              inputMode="tel"
+            />
+          </label>
+          {fulfillment === "DELIVERY" ? (
+            <label>
+              Delivery address
+              <input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                required
+                autoComplete="street-address"
+              />
+            </label>
+          ) : null}
+          <button
+            className="btn"
+            type="submit"
+            disabled={!lines.length || !(branchId || selectedBranch) || submitting}
+          >
+            {submitting ? "Placing…" : "Place order"}
+          </button>
+          {msg ? <p className="error">{msg}</p> : null}
+        </>
+      )}
     </form>
   );
 
@@ -185,10 +238,11 @@ export function OrderClient({
     <div className="order-layout layers-order">
       <section>
         <div className="order-filters panel">
-          <div className="fulfill-toggle">
+          <div className="fulfill-toggle" role="group" aria-label="Fulfillment">
             <button
               type="button"
               className={fulfillment === "PICKUP" ? "active" : undefined}
+              aria-pressed={fulfillment === "PICKUP"}
               onClick={() => setFulfillment("PICKUP")}
             >
               Pickup
@@ -196,6 +250,7 @@ export function OrderClient({
             <button
               type="button"
               className={fulfillment === "DELIVERY" ? "active" : undefined}
+              aria-pressed={fulfillment === "DELIVERY"}
               onClick={() => setFulfillment("DELIVERY")}
             >
               Delivery
@@ -229,6 +284,16 @@ export function OrderClient({
           </label>
         </div>
 
+        {itemCount === 0 ? (
+          <div className="lz-empty" style={{ marginBottom: "1.25rem" }}>
+            <h3>Start with the menu</h3>
+            <p>Add desserts below or open the full menu to explore by category.</p>
+            <Link className="btn-sm" href="/menu">
+              Open full menu →
+            </Link>
+          </div>
+        ) : null}
+
         <div className="lz-product-grid">
           {products.map((p) => (
             <ProductCard key={p.id} product={p} />
@@ -238,7 +303,11 @@ export function OrderClient({
 
       <div className="lz-cart-desktop">{cartForm}</div>
 
-      {showCart ? <div className="lz-cart-sheet">{cartForm}</div> : null}
+      {showCart ? (
+        <div className="lz-cart-sheet" role="dialog" aria-modal="true" aria-label="Cart checkout">
+          {cartForm}
+        </div>
+      ) : null}
 
       {itemCount > 0 ? (
         <button type="button" className="lz-order-fab" onClick={() => setShowCart(true)}>

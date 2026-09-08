@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Pearl White dominant · Brown · Shine Gold · Metallic Black accents */
+  /* Pearl White dominant � Brown � Shine Gold � Metallic Black accents */
   --pearl: #f8f6f0;
   --pearl-soft: #fffef9;
   --pearl-warm: #f3efe6;
@@ -123,7 +123,7 @@ textarea {
   font: inherit;
 }
 
-/* ——— Website ——— */
+/* ??? Website ??? */
 .site {
   min-height: 100vh;
   background:
@@ -809,7 +809,7 @@ textarea {
   color: var(--ok);
 }
 
-/* ——— Login ——— */
+/* ??? Login ??? */
 .login-page {
   min-height: 100vh;
   display: grid;
@@ -866,7 +866,7 @@ textarea {
   color: var(--brown-muted);
 }
 
-/* ——— ERP ——— */
+/* ??? ERP ??? */
 .erp-shell {
   display: grid;
   grid-template-columns: 250px 1fr;
@@ -1252,7 +1252,7 @@ textarea {
   }
 }
 
-/* ── Layers.pk–inspired shop layout ─────────────────────────────── */
+/* ?? Layers.pk?inspired shop layout ??????????????????????????????? */
 .lz-store {
   background:
     radial-gradient(ellipse 80% 40% at 50% -10%, rgba(243, 229, 171, 0.35), transparent 55%),
@@ -1432,15 +1432,15 @@ textarea {
 
 .lz-banner-slide {
   position: relative;
-  min-height: clamp(380px, 48vw, 560px);
+  min-height: min(92vh, 720px);
   overflow: hidden;
 }
 
 .lz-banner-img {
   object-fit: cover;
-  object-position: center 35%;
-  transform: scale(1.02);
-  animation: fadein 0.8s ease;
+  object-position: center 32%;
+  transform: scale(1.06);
+  animation: lz-kenburns 18s ease-out forwards;
 }
 
 .lz-banner-slide::after {
@@ -1448,37 +1448,49 @@ textarea {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(11, 11, 11, 0.72) 0%, rgba(11, 11, 11, 0.35) 48%, rgba(11, 11, 11, 0.15) 100%),
-    linear-gradient(0deg, rgba(11, 11, 11, 0.45), transparent 45%);
+    linear-gradient(105deg, rgba(11, 11, 11, 0.78) 0%, rgba(11, 11, 11, 0.42) 42%, rgba(11, 11, 11, 0.18) 100%),
+    linear-gradient(0deg, rgba(11, 11, 11, 0.5), transparent 42%);
 }
 
 .lz-banner-copy {
   position: relative;
   z-index: 1;
   max-width: 560px;
-  padding: clamp(1.5rem, 4vw, 3.5rem);
+  padding: clamp(2rem, 6vw, 4.5rem) clamp(1.25rem, 4vw, 3.5rem);
   color: #fffef9;
-  animation: rise 0.7s ease;
+  animation: rise 0.85s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.lz-banner-copy .eyebrow {
-  color: var(--gold-shine);
-  letter-spacing: 0.14em;
+.lz-brand-mark {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(2.4rem, 6vw, 3.75rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  background: var(--gold-gradient-light);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 18px rgba(0, 0, 0, 0.35));
 }
 
 .lz-banner-copy h1 {
-  margin: 0.35rem 0 0.65rem;
+  margin: 0.55rem 0 0.75rem;
   font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(2rem, 4.5vw, 3.25rem);
-  line-height: 1.1;
+  font-size: clamp(1.35rem, 2.8vw, 1.85rem);
+  font-weight: 600;
+  line-height: 1.25;
   color: #fffef9;
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.35);
 }
 
-.lz-banner-copy p:not(.eyebrow) {
-  margin: 0 0 1.1rem;
-  color: rgba(255, 254, 249, 0.88);
-  max-width: 36ch;
+.lz-banner-copy p:not(.eyebrow):not(.lz-brand-mark) {
+  margin: 0 0 1.25rem;
+  color: rgba(255, 254, 249, 0.9);
+  max-width: 34ch;
+  font-size: 1.02rem;
+  line-height: 1.5;
 }
 
 .lz-banner-thumbs {
@@ -1750,16 +1762,19 @@ textarea {
   font-size: clamp(2.4rem, 6vw, 4rem);
   line-height: 0.95;
   letter-spacing: -0.02em;
-  color: #fffef9;
-  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.4);
+  background: var(--gold-gradient-light);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 4px 22px rgba(0, 0, 0, 0.45));
 }
 
 .lz-banner-copy h1 {
   font-size: clamp(1.2rem, 2.4vw, 1.65rem) !important;
   font-weight: 500;
-  max-width: 22ch;
-  color: var(--gold-shine) !important;
-  text-shadow: none;
+  max-width: 28ch;
+  color: rgba(255, 254, 249, 0.95) !important;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
 }
 
 .lz-stepper {
@@ -2326,7 +2341,7 @@ textarea {
   }
 }
 
-/* ——— ERP Phase 1: kitchen board & badges ——— */
+/* ??? ERP Phase 1: kitchen board & badges ??? */
 .kitchen-board {
   display: grid;
   grid-template-columns: repeat(5, minmax(180px, 1fr));
@@ -2492,4 +2507,251 @@ textarea {
 
 .stat-grid {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+/* ??? Public UX elevation (Layers ops + pastry editorial) ??? */
+@keyframes lz-kenburns {
+  from { transform: scale(1.06); }
+  to { transform: scale(1.0); }
+}
+
+@keyframes lz-reveal {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.lz-reveal {
+  animation: lz-reveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.lz-location-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  border: none;
+  background: rgba(11, 11, 11, 0.28);
+  cursor: pointer;
+  animation: fadein 0.2s ease;
+}
+
+.lz-location-menu {
+  z-index: 50;
+}
+
+.lz-location-title {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.05rem;
+  color: var(--brown);
+}
+
+.lz-location-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.lz-pdp {
+  padding-top: 1.25rem;
+}
+
+.lz-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.lz-breadcrumb a {
+  color: var(--gold-deep);
+  font-weight: 600;
+}
+
+.lz-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.lz-pdp-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  align-items: start;
+  margin-bottom: 2.5rem;
+}
+
+.lz-pdp-media {
+  position: relative;
+  aspect-ratio: 1 / 1.05;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--pearl-warm);
+  animation: lz-reveal 0.65s ease both;
+}
+
+.lz-pdp-media img {
+  object-fit: cover;
+}
+
+.lz-pdp-copy h1 {
+  margin: 0.25rem 0 0.5rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.85rem, 3vw, 2.6rem);
+  color: var(--brown);
+  letter-spacing: -0.02em;
+}
+
+.lz-pdp-price {
+  margin: 0 0 0.85rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--gold-deep);
+}
+
+.lz-pdp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.15rem 0 0.75rem;
+}
+
+.lz-pdp-hint {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.lz-pdp-related {
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.lz-success-meta {
+  list-style: none;
+  margin: 1.25rem auto;
+  padding: 0;
+  max-width: 320px;
+  text-align: left;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.lz-success-meta li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+
+.lz-success-meta strong {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.lz-cart-empty {
+  border-style: dashed;
+  margin: 0.35rem 0 0.5rem;
+}
+
+.lz-cart-empty .btn {
+  margin-top: 0.75rem;
+}
+
+.lz-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(232, 226, 214, 0.55) 0%,
+    rgba(255, 254, 249, 0.9) 45%,
+    rgba(232, 226, 214, 0.55) 100%
+  );
+  background-size: 200% 100%;
+  animation: lz-shimmer 1.2s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+@keyframes lz-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.lz-skeleton-title {
+  height: 2.4rem;
+  width: min(280px, 70%);
+  margin-bottom: 1rem;
+}
+
+.lz-skeleton-search {
+  height: 2.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.lz-skeleton-row {
+  display: flex;
+  gap: 0.5rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.lz-skeleton-chip {
+  height: 2rem;
+  width: 5.5rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.lz-skeleton-card {
+  height: 148px;
+}
+
+.lz-skeleton-panel {
+  height: 120px;
+  margin-bottom: 1rem;
+}
+
+.lz-product {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+}
+
+.lz-product:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px rgba(92, 64, 51, 0.1);
+}
+
+.lz-sticky-cart {
+  animation: lz-reveal 0.4s ease both;
+}
+
+@media (max-width: 800px) {
+  .lz-pdp-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .lz-banner-slide {
+    min-height: min(78vh, 560px);
+  }
+
+  .lz-brand-mark {
+    font-size: clamp(2.1rem, 10vw, 2.8rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lz-banner-img,
+  .lz-reveal,
+  .lz-skeleton,
+  .lz-product {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .lz-banner-img {
+    transform: none;
+  }
 }

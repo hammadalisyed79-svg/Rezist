@@ -4,7 +4,7 @@ import { brand } from "@/lib/brand";
 
 export function StoreBanner() {
   return (
-    <section className="lz-banner">
+    <section className="lz-banner" aria-label="Rezist hero">
       <div className="lz-banner-slide">
         <Image
           src={brand.heroImage}
@@ -17,7 +17,10 @@ export function StoreBanner() {
         <div className="lz-banner-copy">
           <p className="lz-brand-mark">{brand.name}</p>
           <h1>{brand.slogan}</h1>
-          <p>Order signature cakes and desserts for pickup or delivery — {brand.cities.length} cities across Pakistan.</p>
+          <p>
+            Signature cakes & desserts — pickup or delivery across {brand.cities.length} Pakistan
+            cities.
+          </p>
           <div className="hero-cta">
             <Link className="btn" href="/menu">
               Order now

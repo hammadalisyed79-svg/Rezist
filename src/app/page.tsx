@@ -35,15 +35,14 @@ export default async function HomePage() {
     .map((c) => ({ id: c.id, name: c.name, slug: c.slug, count: c._count.products }));
 
   const featured = products.filter((p) => p.category?.slug === "cakes").slice(0, 4);
-  const popular = products.slice(0, 10);
+  const popular = products.slice(0, 12);
 
   return (
     <SiteShell cities={cities}>
       <StoreBanner />
       <TrustBar />
-      <HowItWorks />
 
-      <section className="lz-shop-section">
+      <section className="lz-shop-section lz-reveal">
         <SectionHead
           eyebrow="Signature"
           title="Cakes worth the craving"
@@ -57,7 +56,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="lz-shop-section">
+      <section className="lz-shop-section lz-reveal">
         <SectionHead eyebrow="Full menu" title="Order your favourites" href="/menu" />
         <CategoryRail categories={catRail} />
         <div className="lz-product-grid">
@@ -67,13 +66,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="lz-mood">
+      <HowItWorks />
+
+      <section className="lz-mood lz-reveal">
         <div className="lz-mood-copy">
           <p className="eyebrow">The lounge</p>
           <h2>{brand.tagline}</h2>
           <p>{brand.bio}</p>
           <Link className="btn" href="/order">
-            Checkout
+            Review cart
           </Link>
         </div>
         <div className="lz-mood-gallery">
@@ -85,7 +86,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="lz-shop-section muted-section">
+      <section className="lz-shop-section muted-section lz-reveal">
         <SectionHead
           eyebrow="Branches"
           title="Choose nearest lounge"

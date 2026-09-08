@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { formatPKR } from "@/lib/utils";
 import { brand } from "@/lib/brand";
 import { AddToCartButton } from "@/components/AddToCartButton";
@@ -9,6 +10,7 @@ export function ProductCard({
 }: {
   product: {
     id: string;
+    sku?: string;
     name: string;
     description: string | null;
     listPrice: number;
@@ -18,19 +20,23 @@ export function ProductCard({
   };
   featured?: boolean;
 }) {
+  const href = product.sku ? `/menu/${encodeURIComponent(product.sku)}` : "/menu";
+
   return (
     <article className={`lz-product${featured ? " featured" : ""}`}>
-      <div className="lz-product-media">
+      <Link href={href} className="lz-product-media" aria-label={`View ${product.name}`}>
         <Image
           src={product.imageUrl || brand.heroImage}
-          alt={product.name}
+          alt=""
           fill
           sizes="(max-width: 640px) 112px, 160px"
         />
-      </div>
+      </Link>
       <div className="lz-product-body">
         {product.category?.name ? <small className="lz-cat">{product.category.name}</small> : null}
-        <h3>{product.name}</h3>
+        <h3>
+          <Link href={href}>{product.name}</Link>
+        </h3>
         <p>{product.description || "Freshly prepared at your nearest Rezist lounge."}</p>
         {product.allergens ? <span className="lz-meta">{product.allergens}</span> : null}
         <div className="lz-product-row">
