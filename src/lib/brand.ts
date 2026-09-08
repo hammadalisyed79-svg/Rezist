@@ -40,9 +40,9 @@ export const brand = {
     brown: "#5C4033",
     brownSoft: "#7A5A48",
     brownMuted: "#9A7B6A",
-    shineGold: "#D4AF37",
-    goldHighlight: "#F3E5AB",
-    goldDeep: "#9A7B1A",
+    shineGold: "#C49A1A",
+    goldHighlight: "#E8C547",
+    goldDeep: "#7A5F10",
     metallicBlack: "#0B0B0B",
   },
 } as const;
