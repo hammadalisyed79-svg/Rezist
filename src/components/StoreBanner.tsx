@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { brand } from "@/lib/brand";
 
-export function StoreBanner() {
+export function StoreBanner({ activeCity }: { activeCity?: string }) {
   return (
     <section className="lz-banner" aria-label="Rezist hero">
       <div className="lz-banner-slide">
@@ -18,11 +18,12 @@ export function StoreBanner() {
           <p className="lz-brand-mark">{brand.name}</p>
           <h1>{brand.slogan}</h1>
           <p>
-            Signature cakes & desserts — pickup or delivery across {brand.cities.length} Pakistan
-            cities.
+            {activeCity
+              ? `Ordering live for ${activeCity} — signature cakes & desserts, pickup or delivery.`
+              : `Signature cakes & desserts — pickup or delivery across ${brand.cities.length} Pakistan cities.`}
           </p>
           <div className="hero-cta">
-            <Link className="btn" href="/menu">
+            <Link className="btn" href="/order">
               Order now
             </Link>
             <Link className="btn-ghost" href="/branches">

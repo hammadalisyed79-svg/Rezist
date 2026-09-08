@@ -27,6 +27,7 @@ type CartContextValue = {
   fulfillment: "PICKUP" | "DELIVERY";
   setFulfillment: (v: "PICKUP" | "DELIVERY") => void;
   justAdded: string | null;
+  ready: boolean;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -131,8 +132,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
       fulfillment,
       setFulfillment,
       justAdded,
+      ready,
     }),
-    [cart, prices, count, subtotal, add, setQty, rememberPrice, clear, branchId, fulfillment, justAdded]
+    [
+      cart,
+      prices,
+      count,
+      subtotal,
+      add,
+      setQty,
+      rememberPrice,
+      clear,
+      branchId,
+      fulfillment,
+      justAdded,
+      ready,
+    ]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

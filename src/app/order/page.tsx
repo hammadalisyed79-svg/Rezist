@@ -29,7 +29,7 @@ export default async function OrderPage({
   const cities = [...new Set(branches.map((b) => b.city))];
 
   return (
-    <SiteShell cities={cities}>
+    <SiteShell cities={cities} branches={branches}>
       <main className="lz-shop-section lz-order-page">
         <div className="lz-shop-head">
           <div>

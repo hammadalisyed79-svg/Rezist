@@ -38,8 +38,8 @@ export default async function HomePage() {
   const popular = products.slice(0, 12);
 
   return (
-    <SiteShell cities={cities}>
-      <StoreBanner />
+    <SiteShell cities={cities} branches={branches}>
+      <StoreBanner activeCity={cities[0]} />
       <TrustBar />
 
       <section className="lz-shop-section lz-reveal">

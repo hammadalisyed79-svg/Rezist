@@ -1,15 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Figtree } from "next/font/google";
+import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import { CartProvider } from "@/components/CartProvider";
 import "./globals.css";
 
-const display = Fraunces({
+const display = Cormorant_Garamond({
   variable: "--font-display",
   subsets: ["latin"],
   weight: ["500", "600", "700"],
 });
 
-const body = Figtree({
+const body = DM_Sans({
   variable: "--font-body",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f8f6f0",
+  themeColor: "#f6f1e8",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

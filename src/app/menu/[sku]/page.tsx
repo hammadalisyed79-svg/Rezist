@@ -40,13 +40,13 @@ export default async function ProductDetailPage({
     }),
     prisma.branch.findMany({
       where: { active: true, type: "RETAIL" },
-      select: { city: true },
+      orderBy: [{ city: "asc" }, { name: "asc" }],
     }),
   ]);
   const cities = [...new Set(branches.map((b) => b.city))];
 
   return (
-    <SiteShell cities={cities}>
+    <SiteShell cities={cities} branches={branches}>
       <main className="lz-shop-section lz-pdp">
         <nav className="lz-breadcrumb" aria-label="Breadcrumb">
           <Link href="/menu">Menu</Link>

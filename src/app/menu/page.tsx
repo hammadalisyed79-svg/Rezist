@@ -43,7 +43,7 @@ export default async function MenuPage({
     : "All desserts";
 
   return (
-    <SiteShell cities={cities}>
+    <SiteShell cities={cities} branches={branches}>
       <main className="lz-shop-section">
         <div className="lz-shop-head">
           <div>

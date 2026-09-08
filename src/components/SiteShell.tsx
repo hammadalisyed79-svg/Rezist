@@ -3,13 +3,16 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { StickyCartBar } from "@/components/StickyCartBar";
 import { MobileDock } from "@/components/MobileDock";
+import { LocationGate } from "@/components/LocationGate";
 
 export function SiteShell({
   cities = [],
+  branches = [],
   showLocation = true,
   children,
 }: {
   cities?: string[];
+  branches?: { id: string; name: string; city: string; address?: string | null }[];
   showLocation?: boolean;
   children: React.ReactNode;
 }) {
@@ -19,6 +22,9 @@ export function SiteShell({
         Skip to content
       </a>
       <SiteHeader cities={cities} showLocation={showLocation} />
+      {showLocation && branches.length ? (
+        <LocationGate cities={cities} branches={branches} />
+      ) : null}
       <div id="main">{children}</div>
       <SiteFooter />
       <StickyCartBar />

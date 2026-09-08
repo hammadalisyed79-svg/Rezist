@@ -10,7 +10,7 @@ export default async function BranchesPublicPage() {
   const cities = [...new Set(branches.map((b) => b.city))];
 
   return (
-    <SiteShell cities={cities}>
+    <SiteShell cities={cities} branches={branches}>
       <main className="lz-shop-section">
         <div className="lz-shop-head">
           <div>
