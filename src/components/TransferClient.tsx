@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type Branch = { id: string; name: string; type: string };
 type Product = { id: string; name: string };
@@ -9,9 +9,15 @@ type Transfer = {
   id: string;
   transferNo: string;
   status: string;
-  fromBranch: { name: string };
+  fromBranch: { name: string; id: string };
   toBranch: { name: string; id: string };
-  lines: { quantity: number; product: { name: string } }[];
+  lines: {
+    id: string;
+    quantity: number;
+    shippedQty: number;
+    receivedQty: number;
+    product: { name: string };
+  }[];
 };
 
 export function TransferClient({
@@ -31,7 +37,13 @@ export function TransferClient({
 }) {
   const router = useRouter();
   const [msg, setMsg] = useState("");
-  const warehouses = branches.filter((b) => b.type !== "RETAIL" || true);
+  const [receiveId, setReceiveId] = useState<string | null>(null);
+  const [recvQty, setRecvQty] = useState<Record<string, number>>({});
+
+  const receiving = useMemo(
+    () => transfers.find((t) => t.id === receiveId) || null,
+    [transfers, receiveId]
+  );
 
   async function create(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,6 +55,7 @@ export function TransferClient({
         fromBranchId: fd.get("fromBranchId"),
         toBranchId: fd.get("toBranchId"),
         notes: fd.get("notes"),
+        autoShip: fd.get("autoShip") === "on",
         lines: [
           {
             productId: fd.get("productId"),
@@ -56,23 +69,58 @@ export function TransferClient({
       setMsg(data.error || "Failed");
       return;
     }
-    setMsg(`Created ${data.transfer.transferNo}`);
+    setMsg(`${data.transfer.transferNo} · ${data.transfer.status}`);
     router.refresh();
   }
 
-  async function receive(id: string) {
+  async function ship(id: string) {
     const res = await fetch("/api/transfers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "receive", transferId: id }),
+      body: JSON.stringify({ action: "ship", transferId: id }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setMsg(data.error || "Ship failed");
+      return;
+    }
+    setMsg("Shipped — stock left source branch");
+    router.refresh();
+  }
+
+  async function receive() {
+    if (!receiving) return;
+    const res = await fetch("/api/transfers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "receive",
+        transferId: receiving.id,
+        lines: receiving.lines.map((l) => ({
+          lineId: l.id,
+                  receivedQty: Number(recvQty[l.id] ?? (l.shippedQty || l.quantity)),
+        })),
+      }),
     });
     const data = await res.json();
     if (!res.ok) {
       setMsg(data.error || "Receive failed");
       return;
     }
-    setMsg("Transfer received into stock");
+    setMsg(
+      data.variances?.length
+        ? `Received with variance (${data.variances.length} lines)`
+        : "Transfer received into stock"
+    );
+    setReceiveId(null);
     router.refresh();
+  }
+
+  function openReceive(t: Transfer) {
+    const seed: Record<string, number> = {};
+    for (const l of t.lines) seed[l.id] = l.shippedQty || l.quantity;
+    setRecvQty(seed);
+    setReceiveId(t.id);
   }
 
   return (
@@ -82,8 +130,12 @@ export function TransferClient({
           <h2>New transfer</h2>
           <label>
             From
-            <select name="fromBranchId" required defaultValue={warehouses.find((b) => b.type === "WAREHOUSE")?.id}>
-              {warehouses.map((b) => (
+            <select
+              name="fromBranchId"
+              required
+              defaultValue={branches.find((b) => b.type === "WAREHOUSE")?.id || userBranchId || ""}
+            >
+              {branches.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
                 </option>
@@ -120,12 +172,44 @@ export function TransferClient({
             Notes
             <input name="notes" placeholder="Optional" />
           </label>
+          <label className="check">
+            <input name="autoShip" type="checkbox" defaultChecked />
+            Ship immediately (deduct stock)
+          </label>
           <button className="btn" type="submit">
-            Dispatch
+            Create transfer
           </button>
         </form>
       ) : null}
       {msg ? <p className="success">{msg}</p> : null}
+
+      {receiving ? (
+        <section className="panel">
+          <h2>Receive {receiving.transferNo}</h2>
+          <p className="muted">Enter actual received qty (variance is logged).</p>
+          {receiving.lines.map((l) => (
+            <label key={l.id}>
+              {l.product.name} (shipped {l.shippedQty || l.quantity})
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={recvQty[l.id] ?? (l.shippedQty || l.quantity)}
+                onChange={(e) => setRecvQty((q) => ({ ...q, [l.id]: Number(e.target.value) }))}
+              />
+            </label>
+          ))}
+          <div className="row-actions">
+            <button type="button" className="btn" onClick={receive}>
+              Confirm GRN receive
+            </button>
+            <button type="button" className="btn-sm" onClick={() => setReceiveId(null)}>
+              Cancel
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       <section className="panel">
         <table>
           <thead>
@@ -145,13 +229,28 @@ export function TransferClient({
                 <td>{t.fromBranch.name}</td>
                 <td>{t.toBranch.name}</td>
                 <td>
-                  {t.lines.map((l) => `${l.product.name} × ${l.quantity}`).join(", ")}
+                  {t.lines
+                    .map(
+                      (l) =>
+                        `${l.product.name} × ${l.quantity}` +
+                        (l.shippedQty ? ` (ship ${l.shippedQty})` : "") +
+                        (l.receivedQty ? ` (recv ${l.receivedQty})` : "")
+                    )
+                    .join(", ")}
                 </td>
-                <td>{t.status}</td>
                 <td>
+                  <span className={`badge status-${t.status.toLowerCase()}`}>{t.status}</span>
+                </td>
+                <td className="row-actions">
+                  {t.status === "DRAFT" &&
+                  (role === "HQ_ADMIN" || userBranchId === t.fromBranch.id) ? (
+                    <button type="button" className="btn-sm" onClick={() => ship(t.id)}>
+                      Ship
+                    </button>
+                  ) : null}
                   {t.status === "IN_TRANSIT" &&
                   (role === "HQ_ADMIN" || userBranchId === t.toBranch.id) ? (
-                    <button type="button" className="btn-sm" onClick={() => receive(t.id)}>
+                    <button type="button" className="btn-sm" onClick={() => openReceive(t)}>
                       Receive
                     </button>
                   ) : null}

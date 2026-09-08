@@ -5,6 +5,10 @@ import { Role, BranchType, ProductType } from "../src/lib/roles";
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.auditLog.deleteMany();
+  await prisma.purchaseOrderLine.deleteMany();
+  await prisma.purchaseOrder.deleteMany();
+  await prisma.supplier.deleteMany();
   await prisma.onlineOrderLine.deleteMany();
   await prisma.onlineOrder.deleteMany();
   await prisma.wastageRecord.deleteMany();
@@ -525,6 +529,38 @@ async function main() {
     }
   }
 
+  const supplier = await prisma.supplier.create({
+    data: {
+      code: "SUP-DAIRY",
+      name: "Gujrat Dairy & Ingredients",
+      phone: "+92 300 1112233",
+      city: "Gujrat",
+      address: "Industrial Area, Gujrat",
+    },
+  });
+
+  await prisma.purchaseOrder.create({
+    data: {
+      poNo: "PO-SEED-0001",
+      supplierId: supplier.id,
+      branchId: warehouse.id,
+      status: "ORDERED",
+      notes: "Seed sample PO — receive GRN in ERP",
+      subtotal: 180 * 100,
+      total: 180 * 100,
+      lines: {
+        create: [
+          {
+            productId: flour.id,
+            quantity: 100,
+            unitCost: 180,
+            lineTotal: 18000,
+          },
+        ],
+      },
+    },
+  });
+
   console.log("Seeded Rezist ERP:");
   console.log("  admin@rezist.pk / rezist123");
   console.log(
@@ -533,6 +569,7 @@ async function main() {
     warehouse.code,
     ...retailBranches.map((b) => b.code)
   );
+  console.log("  Phase 1: Purchases/GRN, transfer receive, kitchen board, audit");
 }
 
 main()

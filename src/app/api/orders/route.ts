@@ -3,29 +3,29 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { adjustStock, getBranchPrice } from "@/lib/inventory";
 import { nextDocNo } from "@/lib/utils";
+import { writeAudit } from "@/lib/audit";
+import { ORDER_FLOW, can, whatsappOrderLink } from "@/lib/permissions";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   const branchId = req.nextUrl.searchParams.get("branchId");
   const status = req.nextUrl.searchParams.get("status");
 
-  if (session) {
-    const orders = await prisma.onlineOrder.findMany({
-      where: {
-        ...(session.role === "HQ_ADMIN"
-          ? {}
-          : { branchId: session.branchId || undefined }),
-        ...(branchId ? { branchId } : {}),
-        ...(status ? { status } : {}),
-      },
-      include: { lines: { include: { product: true } }, branch: true },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    });
-    return NextResponse.json({ orders });
+  if (!session || !can(session.role, "orders")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const orders = await prisma.onlineOrder.findMany({
+    where: {
+      ...(session.role === "HQ_ADMIN" ? {} : { branchId: session.branchId || undefined }),
+      ...(branchId ? { branchId } : {}),
+      ...(status ? { status } : {}),
+    },
+    include: { lines: { include: { product: true } }, branch: true },
+    orderBy: { createdAt: "desc" },
+    take: 120,
+  });
+  return NextResponse.json({ orders });
 }
 
 export async function POST(req: NextRequest) {
@@ -34,18 +34,36 @@ export async function POST(req: NextRequest) {
 
   if (action === "updateStatus") {
     const session = await getSession();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session || !can(session.role, "orders")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const order = await prisma.onlineOrder.findUnique({
       where: { id: String(body.orderId) },
-      include: { lines: true },
+      include: { lines: { include: { product: true } }, branch: true },
     });
     if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (session.role !== "HQ_ADMIN" && session.branchId !== order.branchId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const status = String(body.status);
+    let status = String(body.status);
+    // normalize legacy Accept → Confirmed
+    if (status === "ACCEPTED") status = "CONFIRMED";
+
+    const allowed = ORDER_FLOW[order.status] || [];
+    if (!allowed.includes(status) && !(order.status === "ACCEPTED" && status === "CONFIRMED")) {
+      // allow direct jump CONFIRM from PENDING already in flow
+      if (!(order.status === "PENDING" && status === "CONFIRMED")) {
+        // still allow PREPARING from ACCEPTED legacy
+        if (!(order.status === "ACCEPTED" && ["PREPARING", "READY"].includes(status))) {
+          return NextResponse.json(
+            { error: `Cannot move ${order.status} → ${status}` },
+            { status: 400 }
+          );
+        }
+      }
+    }
 
     if (status === "COMPLETED" && !order.saleId) {
       const sale = await prisma.$transaction(async () => {
@@ -79,14 +97,63 @@ export async function POST(req: NextRequest) {
         });
         return created;
       });
-      return NextResponse.json({ ok: true, sale });
+
+      await writeAudit({
+        actor: session,
+        action: "ORDER_COMPLETE",
+        entityType: "OnlineOrder",
+        entityId: order.id,
+        branchId: order.branchId,
+        summary: `Completed ${order.orderNo}`,
+      });
+
+      const wa = whatsappOrderLink(
+        order.customerPhone,
+        `Rezist: Your order ${order.orderNo} is completed. Thank you!`
+      );
+      return NextResponse.json({ ok: true, sale, whatsappUrl: wa });
+    }
+
+    if (status === "CANCELLED") {
+      const updated = await prisma.onlineOrder.update({
+        where: { id: order.id },
+        data: { status: "CANCELLED" },
+      });
+      await writeAudit({
+        actor: session,
+        action: "ORDER_CANCEL",
+        entityType: "OnlineOrder",
+        entityId: order.id,
+        branchId: order.branchId,
+        summary: `Cancelled ${order.orderNo}`,
+      });
+      return NextResponse.json({ order: updated });
     }
 
     const updated = await prisma.onlineOrder.update({
       where: { id: order.id },
       data: { status },
     });
-    return NextResponse.json({ order: updated });
+
+    await writeAudit({
+      actor: session,
+      action: "ORDER_STATUS",
+      entityType: "OnlineOrder",
+      entityId: order.id,
+      branchId: order.branchId,
+      summary: `${order.orderNo} → ${status}`,
+    });
+
+    const msgs: Record<string, string> = {
+      CONFIRMED: `Rezist: Order ${order.orderNo} confirmed at ${order.branch.name}.`,
+      PREPARING: `Rezist: Order ${order.orderNo} is being prepared.`,
+      READY: `Rezist: Order ${order.orderNo} is READY for ${order.fulfillment === "DELIVERY" ? "delivery" : "pickup"}.`,
+    };
+    const whatsappUrl = msgs[status]
+      ? whatsappOrderLink(order.customerPhone, msgs[status])
+      : null;
+
+    return NextResponse.json({ order: updated, whatsappUrl });
   }
 
   // Public create order
@@ -140,6 +207,14 @@ export async function POST(req: NextRequest) {
         lines: { create: lines },
       },
       include: { lines: { include: { product: true } }, branch: true },
+    });
+
+    await writeAudit({
+      action: "ORDER_CREATE",
+      entityType: "OnlineOrder",
+      entityId: order.id,
+      branchId,
+      summary: `Online ${order.orderNo} from ${order.customerName}`,
     });
 
     return NextResponse.json({ order }, { status: 201 });

@@ -2,6 +2,8 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Dev default: SQLite. For industrial Postgres, set provider = "postgresql"
+// and DATABASE_URL=postgresql://rezist:rezist@localhost:5432/rezist then run db:setup.
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
@@ -19,11 +21,16 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  sales        Sale[]
-  dayCloses    DayClose[]
-  productions  ProductionBatch[]
-  wastage      WastageRecord[]
-  transfersOut StockTransfer[] @relation("TransferCreatedBy")
+  sales           Sale[]
+  dayCloses       DayClose[]
+  productions     ProductionBatch[]
+  wastage         WastageRecord[]
+  transfersOut    StockTransfer[]  @relation("TransferCreatedBy")
+  transfersShip   StockTransfer[]  @relation("TransferShippedBy")
+  transfersRecv   StockTransfer[]  @relation("TransferReceivedBy")
+  purchases       PurchaseOrder[]  @relation("PurchaseCreatedBy")
+  purchasesRecv   PurchaseOrder[]  @relation("PurchaseReceivedBy")
+  auditLogs       AuditLog[]
 }
 
 model Branch {
@@ -48,6 +55,7 @@ model Branch {
   productions    ProductionBatch[]
   wastage        WastageRecord[]
   onlineOrders   OnlineOrder[]
+  purchases      PurchaseOrder[]
 }
 
 model Category {
@@ -88,6 +96,7 @@ model Product {
   productionLines ProductionLine[]
   wastage         WastageRecord[]
   onlineLines     OnlineOrderLine[]
+  purchaseLines   PurchaseOrderLine[]
 }
 
 model RecipeItem {
@@ -127,28 +136,82 @@ model PriceOverride {
 }
 
 model StockTransfer {
-  id           String    @id @default(cuid())
-  transferNo   String    @unique
-  fromBranchId String
-  fromBranch   Branch    @relation("TransferFrom", fields: [fromBranchId], references: [id])
-  toBranchId   String
-  toBranch     Branch    @relation("TransferTo", fields: [toBranchId], references: [id])
-  status       String    @default("DRAFT")
-  notes        String?
-  createdById  String?
-  createdBy    User?     @relation("TransferCreatedBy", fields: [createdById], references: [id])
-  createdAt    DateTime  @default(now())
-  receivedAt   DateTime?
-  lines        StockTransferLine[]
+  id            String    @id @default(cuid())
+  transferNo    String    @unique
+  fromBranchId  String
+  fromBranch    Branch    @relation("TransferFrom", fields: [fromBranchId], references: [id])
+  toBranchId    String
+  toBranch      Branch    @relation("TransferTo", fields: [toBranchId], references: [id])
+  status        String    @default("DRAFT")
+  notes         String?
+  createdById   String?
+  createdBy     User?     @relation("TransferCreatedBy", fields: [createdById], references: [id])
+  shippedById   String?
+  shippedBy     User?     @relation("TransferShippedBy", fields: [shippedById], references: [id])
+  receivedById  String?
+  receivedBy    User?     @relation("TransferReceivedBy", fields: [receivedById], references: [id])
+  createdAt     DateTime  @default(now())
+  shippedAt     DateTime?
+  receivedAt    DateTime?
+  lines         StockTransferLine[]
 }
 
 model StockTransferLine {
-  id         String        @id @default(cuid())
-  transferId String
-  transfer   StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
-  productId  String
-  product    Product       @relation(fields: [productId], references: [id])
-  quantity   Float
+  id          String        @id @default(cuid())
+  transferId  String
+  transfer    StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product       @relation(fields: [productId], references: [id])
+  quantity    Float
+  shippedQty  Float         @default(0)
+  receivedQty Float         @default(0)
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  city      String?
+  active    Boolean  @default(true)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  purchases PurchaseOrder[]
+}
+
+model PurchaseOrder {
+  id            String   @id @default(cuid())
+  poNo          String   @unique
+  supplierId    String
+  supplier      Supplier @relation(fields: [supplierId], references: [id])
+  branchId      String
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  status        String   @default("DRAFT")
+  notes         String?
+  subtotal      Float    @default(0)
+  total         Float    @default(0)
+  createdById   String?
+  createdBy     User?    @relation("PurchaseCreatedBy", fields: [createdById], references: [id])
+  receivedById  String?
+  receivedBy    User?    @relation("PurchaseReceivedBy", fields: [receivedById], references: [id])
+  orderedAt     DateTime @default(now())
+  receivedAt    DateTime?
+  lines         PurchaseOrderLine[]
+}
+
+model PurchaseOrderLine {
+  id          String        @id @default(cuid())
+  purchaseId  String
+  purchase    PurchaseOrder @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product       @relation(fields: [productId], references: [id])
+  quantity    Float
+  receivedQty Float         @default(0)
+  unitCost    Float         @default(0)
+  lineTotal   Float         @default(0)
 }
 
 model Sale {
@@ -163,6 +226,8 @@ model Sale {
   tax           Float    @default(0)
   total         Float
   paymentMethod String   @default("CASH")
+  voided        Boolean  @default(false)
+  voidReason    String?
   createdAt     DateTime @default(now())
   lines         SaleLine[]
   onlineOrder   OnlineOrder?
@@ -266,4 +331,20 @@ model OnlineOrderLine {
   quantity  Float
   unitPrice Float
   lineTotal Float
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  branchId   String?
+  summary    String
+  meta       String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
 }

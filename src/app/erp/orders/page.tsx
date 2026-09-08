@@ -16,8 +16,11 @@ export default async function OrdersPage() {
     <ErpPage user={user}>
       <header className="page-header">
         <div>
-          <p className="eyebrow">Website channel</p>
-          <h1>Online orders</h1>
+          <p className="eyebrow">Branch operations</p>
+          <h1>Kitchen board</h1>
+          <p className="muted">
+            New → Confirmed → Preparing → Ready → Done. WhatsApp opens when you update the customer.
+          </p>
         </div>
       </header>
       <OrdersClient

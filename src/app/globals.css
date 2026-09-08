@@ -2325,3 +2325,140 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ——— ERP Phase 1: kitchen board & badges ——— */
+.kitchen-board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(180px, 1fr));
+  gap: 0.75rem;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.kitchen-col {
+  background: var(--erp-panel);
+  border: 1px solid var(--erp-line);
+  border-radius: 14px;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+.kitchen-col > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--erp-line);
+}
+
+.kitchen-col > header h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--brown);
+}
+
+.kitchen-col > header em {
+  font-style: normal;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--gold-gradient-btn);
+  color: var(--black);
+  min-width: 1.4rem;
+  height: 1.4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.kitchen-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.65rem;
+  flex: 1;
+}
+
+.kitchen-card {
+  border: 1px solid var(--erp-line);
+  border-radius: 12px;
+  padding: 0.7rem;
+  background: #fff;
+}
+
+.kitchen-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.kitchen-branch {
+  margin: 0.25rem 0;
+  font-size: 0.75rem;
+  color: var(--gold-deep);
+  font-weight: 700;
+}
+
+.kitchen-card ul {
+  margin: 0.35rem 0;
+  padding-left: 1rem;
+  font-size: 0.82rem;
+  color: var(--brown-soft);
+}
+
+.kitchen-total {
+  margin: 0.35rem 0;
+  font-weight: 700;
+  color: var(--brown);
+}
+
+.kitchen-empty {
+  text-align: center;
+  font-size: 0.8rem;
+  padding: 1rem 0;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--pearl-dim);
+  color: var(--brown);
+}
+
+.badge.status-draft,
+.badge.status-pending,
+.badge.status-ordered {
+  background: rgba(154, 123, 26, 0.15);
+  color: var(--gold-deep);
+}
+
+.badge.status-in_transit,
+.badge.status-confirmed,
+.badge.status-preparing,
+.badge.status-partial {
+  background: rgba(47, 122, 74, 0.12);
+  color: var(--ok);
+}
+
+.badge.status-received,
+.badge.status-ready,
+.badge.status-completed {
+  background: rgba(11, 11, 11, 0.08);
+  color: var(--brown);
+}
+
+.badge.status-cancelled {
+  background: rgba(163, 58, 58, 0.12);
+  color: var(--err);
+}
+
+@media (max-width: 1100px) {
+  .kitchen-board {
+    grid-template-columns: repeat(5, minmax(200px, 1fr));
+  }
+}

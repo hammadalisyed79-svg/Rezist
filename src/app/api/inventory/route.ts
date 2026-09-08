@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveBranchScope } from "@/lib/utils";
+import { writeAudit } from "@/lib/audit";
+import { can } from "@/lib/permissions";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session || !can(session.role, "inventory")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const branchId = resolveBranchScope(session, req.nextUrl.searchParams.get("branchId"));
   if (!branchId) {
@@ -29,28 +33,45 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
-  if (!session || session.role === "CASHIER") {
+  if (!session || !can(session.role, "adjustStock")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const body = await req.json();
   const branchId = resolveBranchScope(session, body.branchId);
   if (!branchId) return NextResponse.json({ error: "branchId required" }, { status: 400 });
 
+  const productId = String(body.productId);
+  const quantity = Number(body.quantity || 0);
+  const prev = await prisma.inventoryItem.findUnique({
+    where: { branchId_productId: { branchId, productId } },
+  });
+
   const item = await prisma.inventoryItem.upsert({
     where: {
-      branchId_productId: { branchId, productId: String(body.productId) },
+      branchId_productId: { branchId, productId },
     },
     create: {
       branchId,
-      productId: String(body.productId),
-      quantity: Number(body.quantity || 0),
+      productId,
+      quantity,
       reorderLevel: Number(body.reorderLevel || 0),
     },
     update: {
-      quantity: Number(body.quantity || 0),
+      quantity,
       reorderLevel: Number(body.reorderLevel || 0),
     },
     include: { product: true },
   });
+
+  await writeAudit({
+    actor: session,
+    action: "STOCK_ADJUST",
+    entityType: "InventoryItem",
+    entityId: item.id,
+    branchId,
+    summary: `Set ${item.product.name} stock ${prev?.quantity ?? 0} → ${quantity}`,
+    meta: { previous: prev?.quantity ?? 0, next: quantity },
+  });
+
   return NextResponse.json({ item });
 }

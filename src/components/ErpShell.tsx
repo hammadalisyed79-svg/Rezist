@@ -4,19 +4,23 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import { can } from "@/lib/permissions";
+import type { Role } from "@/lib/roles";
 
-const nav = [
-  { href: "/erp", label: "Dashboard" },
-  { href: "/erp/pos", label: "POS" },
-  { href: "/erp/products", label: "Products" },
-  { href: "/erp/inventory", label: "Inventory" },
-  { href: "/erp/transfers", label: "Transfers" },
-  { href: "/erp/production", label: "Production" },
-  { href: "/erp/wastage", label: "Wastage" },
-  { href: "/erp/orders", label: "Online Orders" },
-  { href: "/erp/reports", label: "Reports" },
-  { href: "/erp/branches", label: "Branches" },
-  { href: "/erp/day-close", label: "Day Close" },
+const nav: { href: string; label: string; capability: Parameters<typeof can>[1] }[] = [
+  { href: "/erp", label: "Dashboard", capability: "dashboard" },
+  { href: "/erp/pos", label: "POS", capability: "pos" },
+  { href: "/erp/orders", label: "Kitchen Board", capability: "orders" },
+  { href: "/erp/products", label: "Products", capability: "products" },
+  { href: "/erp/inventory", label: "Inventory", capability: "inventory" },
+  { href: "/erp/purchases", label: "Purchases / GRN", capability: "purchases" },
+  { href: "/erp/transfers", label: "Transfers", capability: "transfers" },
+  { href: "/erp/production", label: "Production", capability: "production" },
+  { href: "/erp/wastage", label: "Wastage", capability: "wastage" },
+  { href: "/erp/reports", label: "Reports", capability: "reports" },
+  { href: "/erp/branches", label: "Branches", capability: "branches" },
+  { href: "/erp/day-close", label: "Day Close", capability: "dayClose" },
+  { href: "/erp/audit", label: "Audit Log", capability: "audit" },
 ];
 
 export function ErpShell({
@@ -28,6 +32,8 @@ export function ErpShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const role = user.role as Role;
+  const items = nav.filter((item) => can(role, item.capability));
 
   async function logout() {
     await fetch("/api/auth", { method: "DELETE" });
@@ -46,15 +52,15 @@ export function ErpShell({
           </div>
         </div>
         <nav>
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={pathname === item.href ? "active" : undefined}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {items.map((item) => {
+            const active =
+              item.href === "/erp" ? pathname === "/erp" : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link key={item.href} href={item.href} className={active ? "active" : undefined}>
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="erp-user">
           <div>
