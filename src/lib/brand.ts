@@ -34,10 +34,11 @@ export const brand = {
   websiteModel: "layers.pk",
   freeDeliveryMin: 1000,
   colors: {
-    black: "#0a0a0a",
-    gold: "#c08f3c",
-    goldSoft: "#d4a84b",
-    cream: "#f7f1e6",
-    muted: "#b7aa98",
+    shineBlack: "#050505",
+    pureGold: "#FFD700",
+    goldRich: "#F0C400",
+    pearlWhite: "#F8F6F0",
+    pearlSoft: "#FFFEF9",
+    pearlDim: "#E8E4DA",
   },
 } as const;

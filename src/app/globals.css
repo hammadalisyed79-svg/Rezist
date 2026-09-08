@@ -1,19 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0a0a0a;
-  --bg-deep: #121212;
-  --ink: #f7f1e6;
-  --muted: #b7aa98;
-  --accent: #c08f3c;
-  --accent-2: #d4a84b;
-  --panel: #161616;
-  --line: rgba(192, 143, 60, 0.28);
-  --ok: #7ddea3;
+  /* Pure Gold · Shine Black · Pearl White */
+  --black: #050505;
+  --black-shine: #0d0d0d;
+  --black-elevated: #141414;
+  --gold: #ffd700;
+  --gold-pure: #ffd700;
+  --gold-rich: #f0c400;
+  --gold-deep: #c9a227;
+  --pearl: #f8f6f0;
+  --pearl-soft: #fffef9;
+  --pearl-dim: #e8e4da;
+
+  --bg: var(--black);
+  --bg-deep: var(--black-shine);
+  --ink: var(--pearl);
+  --muted: var(--pearl-dim);
+  --accent: var(--gold);
+  --accent-2: var(--gold-rich);
+  --panel: var(--black-elevated);
+  --line: rgba(255, 215, 0, 0.35);
+  --ok: #9dffb0;
   --err: #ffb4b4;
-  --erp-bg: #0a0a0a;
-  --erp-panel: #141414;
-  --erp-line: rgba(192, 143, 60, 0.2);
+  --erp-bg: var(--black);
+  --erp-panel: var(--black-elevated);
+  --erp-line: rgba(255, 215, 0, 0.28);
+  --erp-ink: var(--pearl);
 }
 
 @theme inline {
@@ -55,10 +68,10 @@ textarea {
 .site {
   min-height: 100vh;
   background:
-    radial-gradient(ellipse 70% 45% at 15% 0%, rgba(192, 143, 60, 0.18), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 90% 20%, rgba(192, 143, 60, 0.08), transparent 50%),
-    linear-gradient(180deg, #0a0a0a 0%, #101010 50%, #0a0a0a 100%);
-  color: var(--ink);
+    radial-gradient(ellipse 70% 45% at 12% 0%, rgba(255, 215, 0, 0.16), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 88% 18%, rgba(255, 215, 0, 0.08), transparent 50%),
+    linear-gradient(180deg, var(--black) 0%, var(--black-shine) 45%, var(--black) 100%);
+  color: var(--pearl);
 }
 
 .site-header {
@@ -69,7 +82,7 @@ textarea {
   position: sticky;
   top: 0;
   backdrop-filter: blur(12px);
-  background: rgba(10, 10, 10, 0.88);
+  background: rgba(5, 5, 5, 0.92);
   border-bottom: 1px solid var(--line);
   z-index: 20;
 }
@@ -128,8 +141,8 @@ textarea {
   height: 1.25rem;
   margin-left: 0.35rem;
   border-radius: 999px;
-  background: var(--accent);
-  color: #0a0a0a;
+  background: var(--gold);
+  color: var(--black);
   font-size: 0.75rem;
 }
 
@@ -139,7 +152,7 @@ textarea {
   gap: 0.75rem;
   padding: 1.25rem 6vw;
   border-block: 1px solid var(--line);
-  background: rgba(192, 143, 60, 0.06);
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.06), rgba(248, 246, 240, 0.04), rgba(255, 215, 0, 0.06));
 }
 
 .trust-bar div {
@@ -184,9 +197,9 @@ textarea {
 }
 
 .fulfill-toggle button.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #0a0a0a;
+  background: linear-gradient(180deg, #ffe566 0%, var(--gold) 100%);
+  border-color: var(--gold);
+  color: var(--black);
 }
 
 .category-chips {
@@ -351,7 +364,7 @@ textarea {
 .tagline-line {
   letter-spacing: 0.28em;
   font-size: 0.8rem;
-  color: #fff;
+  color: var(--pearl);
   margin: 0 0 1rem;
   animation: rise 0.95s ease 0.05s both;
 }
@@ -368,7 +381,7 @@ textarea {
   font-weight: 500;
   margin: 0 0 1rem;
   max-width: 18ch;
-  color: #fff;
+  color: var(--pearl);
   animation: rise 1s ease 0.08s both;
 }
 
@@ -416,21 +429,24 @@ textarea {
   padding: 0.7rem 1.15rem;
   cursor: pointer;
   border-radius: 999px;
-  background: var(--accent);
-  color: #0a0a0a;
+  background: linear-gradient(180deg, #ffe566 0%, var(--gold) 45%, var(--gold-rich) 100%);
+  color: var(--black);
   font-weight: 700;
+  box-shadow: 0 0 24px rgba(255, 215, 0, 0.22);
 }
 
 .btn-ghost {
   background: transparent;
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: none;
 }
 
 .btn-sm {
   padding: 0.35rem 0.7rem;
   font-size: 0.85rem;
   border-radius: 8px;
+  box-shadow: none;
 }
 
 .section {
@@ -458,7 +474,7 @@ textarea {
 }
 
 .muted-section {
-  background: rgba(192, 143, 60, 0.05);
+  background: rgba(248, 246, 240, 0.04);
 }
 
 .menu-row,
@@ -638,41 +654,43 @@ textarea {
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at 20% 20%, rgba(196, 92, 38, 0.25), transparent 40%),
-    #1a1411;
-  color: #fff8ef;
+    radial-gradient(circle at 20% 20%, rgba(255, 215, 0, 0.2), transparent 40%),
+    var(--black);
+  color: var(--pearl);
   padding: 1rem;
 }
 
 .login-card {
   width: min(420px, 100%);
-  background: #241c18;
-  border-color: rgba(255, 248, 239, 0.12);
-  color: #fff8ef;
+  background: var(--black-elevated);
+  border-color: rgba(255, 215, 0, 0.28);
+  color: var(--pearl);
 }
 
 .login-card h1 {
   font-family: var(--font-display), serif;
   margin: 0.25rem 0;
+  color: var(--gold);
 }
 
 .login-card input {
-  background: #1a1411;
-  color: #fff8ef;
-  border-color: rgba(255, 248, 239, 0.18);
+  background: var(--black);
+  color: var(--pearl);
+  border-color: rgba(255, 215, 0, 0.25);
 }
 
 .login-card .btn,
 .login-card button[type="submit"] {
   width: 100%;
   margin-top: 0.5rem;
-  background: var(--accent-2);
+  background: linear-gradient(180deg, #ffe566 0%, var(--gold) 45%, var(--gold-rich) 100%);
   border: 0;
-  color: white;
+  color: var(--black);
   padding: 0.75rem;
   border-radius: 999px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 0 24px rgba(255, 215, 0, 0.25);
 }
 
 .hint,
@@ -684,7 +702,7 @@ textarea {
 .login-card .muted,
 .login-card .hint,
 .login-card a {
-  color: rgba(255, 248, 239, 0.7);
+  color: rgba(248, 246, 240, 0.7);
 }
 
 .error {
@@ -701,7 +719,7 @@ textarea {
   grid-template-columns: 240px 1fr;
   min-height: 100vh;
   background: var(--erp-bg);
-  color: #f6efe4;
+  color: var(--pearl);
   font-family: var(--font-body), system-ui, sans-serif;
 }
 
@@ -711,7 +729,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  background: #100e0c;
+  background: linear-gradient(180deg, #050505 0%, #0a0a0a 100%);
 }
 
 .erp-brand {
@@ -725,7 +743,8 @@ textarea {
   height: 2.2rem;
   display: grid;
   place-items: center;
-  background: var(--accent);
+  background: linear-gradient(180deg, #ffe566, var(--gold));
+  color: var(--black);
   border-radius: 8px;
   font-family: var(--font-display), serif;
   font-weight: 700;
@@ -742,7 +761,7 @@ textarea {
 
 .erp-brand small,
 .erp-user small {
-  color: rgba(246, 239, 228, 0.55);
+  color: rgba(248, 246, 240, 0.55);
 }
 
 .erp-sidebar nav {
@@ -755,13 +774,13 @@ textarea {
 .erp-sidebar a {
   padding: 0.55rem 0.7rem;
   border-radius: 8px;
-  color: rgba(246, 239, 228, 0.8);
+  color: rgba(248, 246, 240, 0.82);
 }
 
 .erp-sidebar a.active,
 .erp-sidebar a:hover {
-  background: rgba(255, 248, 239, 0.08);
-  color: #fff;
+  background: rgba(255, 215, 0, 0.12);
+  color: var(--gold);
 }
 
 .erp-user {
@@ -774,8 +793,8 @@ textarea {
 
 .erp-user button {
   background: transparent;
-  border: 1px solid var(--erp-line);
-  color: #f6efe4;
+  border: 1px solid var(--gold);
+  color: var(--gold);
   padding: 0.45rem 0.7rem;
   border-radius: 8px;
   cursor: pointer;
@@ -818,7 +837,7 @@ textarea {
 }
 
 .stat-grid span {
-  color: rgba(246, 239, 228, 0.55);
+  color: rgba(248, 246, 240, 0.55);
   font-size: 0.85rem;
 }
 
@@ -827,18 +846,20 @@ textarea {
   margin-top: 0.35rem;
   font-size: 1.4rem;
   font-family: var(--font-display), serif;
+  color: var(--gold);
 }
 
 .erp-main .panel {
   background: var(--erp-panel);
   border-color: var(--erp-line);
-  color: #f6efe4;
+  color: var(--pearl);
   margin-bottom: 1rem;
 }
 
 .erp-main .panel h2 {
   margin-top: 0;
   font-family: var(--font-display), serif;
+  color: var(--gold);
 }
 
 .erp-main table {
@@ -856,11 +877,11 @@ textarea {
 }
 
 .erp-main .muted {
-  color: rgba(246, 239, 228, 0.55);
+  color: rgba(248, 246, 240, 0.55);
 }
 
 .erp-main .success {
-  color: #7ddea3;
+  color: #9dffb0;
 }
 
 .erp-main .error {
@@ -869,8 +890,8 @@ textarea {
 
 .erp-main input,
 .erp-main select {
-  background: #14110f;
-  color: #f6efe4;
+  background: var(--black);
+  color: var(--pearl);
   border-color: var(--erp-line);
 }
 
@@ -902,8 +923,9 @@ textarea {
 }
 
 .chip.active {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: linear-gradient(180deg, #ffe566, var(--gold));
+  border-color: var(--gold);
+  color: var(--black);
 }
 
 .pos-grid {
@@ -920,9 +942,9 @@ textarea {
 }
 
 .product-tile {
-  background: #2a221d;
+  background: var(--black-elevated);
   border: 1px solid var(--erp-line);
-  color: #f6efe4;
+  color: var(--pearl);
   padding: 0.9rem;
   text-align: left;
   cursor: pointer;
@@ -934,7 +956,8 @@ textarea {
 }
 
 .product-tile:hover {
-  border-color: var(--accent-2);
+  border-color: var(--gold);
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.18);
 }
 
 .cart-list {
@@ -962,8 +985,8 @@ textarea {
   height: 1.6rem;
   border-radius: 6px;
   border: 1px solid var(--erp-line);
-  background: #14110f;
-  color: #fff;
+  background: var(--black);
+  color: var(--gold);
   cursor: pointer;
 }
 
@@ -974,7 +997,7 @@ textarea {
 }
 
 .warn-row {
-  background: rgba(196, 92, 38, 0.12);
+  background: rgba(255, 215, 0, 0.08);
 }
 
 .row-actions {
