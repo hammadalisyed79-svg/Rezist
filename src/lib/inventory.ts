@@ -135,10 +135,8 @@ export async function adjustStock(
 }
 
 export async function getBranchPrice(branchId: string, productId: string, listPrice: number) {
-  const override = await prisma.priceOverride.findUnique({
-    where: { branchId_productId: { branchId, productId } },
-  });
-  return override?.price ?? listPrice;
+  const { getEffectivePrice } = await import("./pricing");
+  return getEffectivePrice(branchId, productId, listPrice);
 }
 
 export async function getExpiringLots(branchId?: string, withinDays = 3) {

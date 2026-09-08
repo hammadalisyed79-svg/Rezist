@@ -6,6 +6,10 @@ const prisma = new PrismaClient();
 
 async function main() {
   await prisma.auditLog.deleteMany();
+  await prisma.loyaltyLedger.deleteMany();
+  await prisma.attendance.deleteMany();
+  await prisma.promotionItem.deleteMany();
+  await prisma.promotion.deleteMany();
   await prisma.inventoryLot.deleteMany();
   await prisma.posShift.deleteMany();
   await prisma.purchaseOrderLine.deleteMany();
@@ -19,6 +23,7 @@ async function main() {
   await prisma.dayClose.deleteMany();
   await prisma.saleLine.deleteMany();
   await prisma.sale.deleteMany();
+  await prisma.customer.deleteMany();
   await prisma.stockTransferLine.deleteMany();
   await prisma.stockTransfer.deleteMany();
   await prisma.priceOverride.deleteMany();
@@ -581,6 +586,35 @@ async function main() {
     },
   });
 
+  const cake = products.find((p) => p.sku === "CAK-CADB-01");
+  await prisma.promotion.create({
+    data: {
+      code: "WEEKEND10",
+      name: "Weekend 10% cakes",
+      type: "PERCENT",
+      value: 10,
+      city: "Gujrat",
+      startsAt: new Date(Date.now() - 86400000),
+      endsAt: new Date(Date.now() + 14 * 86400000),
+      active: true,
+      items: cake ? { create: [{ productId: cake.id }] } : undefined,
+    },
+  });
+
+  await prisma.customer.create({
+    data: {
+      phone: "03314213137",
+      name: "Walk-in VIP",
+      city: "Gujrat",
+      preferredBranchId: gujrat.id,
+      loyaltyPoints: 50,
+      birthday: new Date("1995-09-15"),
+      loyaltyLedger: {
+        create: [{ delta: 50, reason: "Seed welcome points" }],
+      },
+    },
+  });
+
   console.log("Seeded Rezist ERP:");
   console.log("  admin@rezist.pk / rezist123");
   console.log("  Manager PIN for void: 4321");
@@ -590,7 +624,7 @@ async function main() {
     warehouse.code,
     ...retailBranches.map((b) => b.code)
   );
-  console.log("  Phase 2: production demand plan, costing, lots/FEFO, reorder, POS shifts");
+  console.log("  Phase 3: HQ, promos, CRM, staff, accounting + Phase1/2 gaps");
 }
 
 main()

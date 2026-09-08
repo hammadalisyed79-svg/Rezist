@@ -54,6 +54,7 @@ export default async function InventoryPage({
               <th>Product</th>
               <th>SKU</th>
               <th>Qty</th>
+              <th>Reserved</th>
               <th>UOM</th>
               <th>Reorder</th>
             </tr>
@@ -64,6 +65,7 @@ export default async function InventoryPage({
                 <td>{i.product.name}</td>
                 <td>{i.product.sku}</td>
                 <td>{i.quantity}</td>
+                <td>{i.reservedQty || 0}</td>
                 <td>{i.product.uom}</td>
                 <td>{i.reorderLevel}</td>
               </tr>

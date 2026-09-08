@@ -4,11 +4,19 @@ import { can } from "@/lib/permissions";
 import type { Role } from "@/lib/roles";
 import { getProductCosting } from "@/lib/costing";
 import { CostingClient } from "@/components/CostingClient";
+import { prisma } from "@/lib/prisma";
 
 export default async function CostingPage() {
   const user = await requireErpUser();
   if (!can(user.role as Role, "costing")) redirect("/erp");
-  const rows = await getProductCosting();
+  const [rows, ingredients] = await Promise.all([
+    getProductCosting(),
+    prisma.product.findMany({
+      where: { type: { in: ["RAW", "SEMI"] }, active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, costPrice: true },
+    }),
+  ]);
 
   return (
     <ErpPage user={user}>
@@ -16,10 +24,10 @@ export default async function CostingPage() {
         <div>
           <p className="eyebrow">Margins</p>
           <h1>Recipe costing</h1>
-          <p className="muted">Live BOM cost from ingredient prices. Alerts under 35% margin.</p>
+          <p className="muted">Edit BOM, live cost from ingredients, alerts under 35% margin.</p>
         </div>
       </header>
-      <CostingClient rows={rows} isHq={user.role === "HQ_ADMIN"} />
+      <CostingClient rows={rows} isHq={user.role === "HQ_ADMIN"} ingredients={ingredients} />
     </ErpPage>
   );
 }

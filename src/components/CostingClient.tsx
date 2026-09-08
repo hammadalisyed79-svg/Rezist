@@ -15,11 +15,26 @@ type Row = {
   marginPct: number;
   lowMargin: boolean;
   missingRecipe: boolean;
+  ingredients: { name: string; qty: number; unitCost: number; lineCost: number }[];
 };
 
-export function CostingClient({ rows, isHq }: { rows: Row[]; isHq: boolean }) {
+type Ingredient = { id: string; name: string; costPrice: number };
+
+export function CostingClient({
+  rows,
+  isHq,
+  ingredients,
+}: {
+  rows: Row[];
+  isHq: boolean;
+  ingredients: Ingredient[];
+}) {
   const router = useRouter();
   const [msg, setMsg] = useState("");
+  const [editId, setEditId] = useState<string | null>(null);
+  const [bom, setBom] = useState<{ ingredientId: string; quantity: number }[]>([
+    { ingredientId: "", quantity: 0.1 },
+  ]);
 
   async function sync() {
     const res = await fetch("/api/costing", {
@@ -36,6 +51,35 @@ export function CostingClient({ rows, isHq }: { rows: Row[]; isHq: boolean }) {
     router.refresh();
   }
 
+  function openEdit(row: Row) {
+    setEditId(row.productId);
+    setBom(
+      row.ingredients.length
+        ? row.ingredients.map((i) => ({
+            ingredientId: ingredients.find((x) => x.name === i.name)?.id || "",
+            quantity: i.qty,
+          }))
+        : [{ ingredientId: ingredients[0]?.id || "", quantity: 0.1 }]
+    );
+  }
+
+  async function saveBom() {
+    if (!editId) return;
+    const res = await fetch("/api/recipes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: editId, lines: bom }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setMsg(data.error || "BOM save failed");
+      return;
+    }
+    setMsg("Recipe updated");
+    setEditId(null);
+    router.refresh();
+  }
+
   return (
     <>
       {isHq ? (
@@ -47,6 +91,57 @@ export function CostingClient({ rows, isHq }: { rows: Row[]; isHq: boolean }) {
         </div>
       ) : null}
       {msg ? <p className="success">{msg}</p> : null}
+
+      {editId ? (
+        <section className="panel">
+          <h2>Edit recipe / BOM</h2>
+          {bom.map((line, idx) => (
+            <div key={idx} className="form-inline" style={{ marginBottom: 8 }}>
+              <select
+                value={line.ingredientId}
+                onChange={(e) => {
+                  const next = [...bom];
+                  next[idx] = { ...next[idx], ingredientId: e.target.value };
+                  setBom(next);
+                }}
+              >
+                {ingredients.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.name} (cost {i.costPrice})
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={line.quantity}
+                onChange={(e) => {
+                  const next = [...bom];
+                  next[idx] = { ...next[idx], quantity: Number(e.target.value) };
+                  setBom(next);
+                }}
+              />
+            </div>
+          ))}
+          <div className="row-actions">
+            <button
+              type="button"
+              className="btn-sm"
+              onClick={() => setBom([...bom, { ingredientId: ingredients[0]?.id || "", quantity: 0.1 }])}
+            >
+              Add line
+            </button>
+            <button type="button" className="btn" onClick={saveBom}>
+              Save BOM
+            </button>
+            <button type="button" className="btn-sm" onClick={() => setEditId(null)}>
+              Cancel
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       <section className="panel">
         <table>
           <thead>
@@ -57,6 +152,7 @@ export function CostingClient({ rows, isHq }: { rows: Row[]; isHq: boolean }) {
               <th>Margin</th>
               <th>%</th>
               <th>Alert</th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -79,6 +175,11 @@ export function CostingClient({ rows, isHq }: { rows: Row[]; isHq: boolean }) {
                   ) : (
                     <span className="badge status-completed">OK</span>
                   )}
+                </td>
+                <td>
+                  <button type="button" className="btn-sm" onClick={() => openEdit(r)}>
+                    Edit BOM
+                  </button>
                 </td>
               </tr>
             ))}

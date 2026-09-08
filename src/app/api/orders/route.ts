@@ -209,6 +209,23 @@ export async function POST(req: NextRequest) {
       include: { lines: { include: { product: true } }, branch: true },
     });
 
+    try {
+      const { upsertCustomerFromOrder } = await import("@/lib/pricing");
+      const customer = await upsertCustomerFromOrder({
+        name: order.customerName,
+        phone: order.customerPhone,
+        email: order.customerEmail,
+        branchId,
+        orderTotal: order.total,
+      });
+      await prisma.onlineOrder.update({
+        where: { id: order.id },
+        data: { customerId: customer.id },
+      });
+    } catch {
+      /* CRM link best-effort */
+    }
+
     await writeAudit({
       action: "ORDER_CREATE",
       entityType: "OnlineOrder",

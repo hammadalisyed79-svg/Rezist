@@ -6,7 +6,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Bump when schema models change so the Next.js HMR singleton refreshes.
-const SCHEMA_VERSION = "phase2-supplier-lots-shifts";
+const SCHEMA_VERSION = "phase3-hq-promo-crm-staff";
 
 function createPrisma() {
   return new PrismaClient({
