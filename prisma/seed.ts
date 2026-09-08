@@ -6,6 +6,8 @@ const prisma = new PrismaClient();
 
 async function main() {
   await prisma.auditLog.deleteMany();
+  await prisma.inventoryLot.deleteMany();
+  await prisma.posShift.deleteMany();
   await prisma.purchaseOrderLine.deleteMany();
   await prisma.purchaseOrder.deleteMany();
   await prisma.supplier.deleteMany();
@@ -111,6 +113,7 @@ async function main() {
   const jhelum = retailBranches[2];
 
   const passwordHash = await bcrypt.hash("rezist123", 10);
+  const managerPinHash = await bcrypt.hash("4321", 10);
 
   await prisma.user.createMany({
     data: [
@@ -118,12 +121,14 @@ async function main() {
         email: "admin@rezist.pk",
         name: "HQ Admin",
         passwordHash,
+        managerPinHash,
         role: Role.HQ_ADMIN,
       },
       {
         email: "manager.gujrat@rezist.pk",
         name: "Branch Manager Gujrat",
         passwordHash,
+        managerPinHash,
         role: Role.BRANCH_MANAGER,
         branchId: gujrat.id,
       },
@@ -138,6 +143,7 @@ async function main() {
         email: "manager.jhelum@rezist.pk",
         name: "Branch Manager Jhelum",
         passwordHash,
+        managerPinHash,
         role: Role.BRANCH_MANAGER,
         branchId: jhelum.id,
       },
@@ -526,6 +532,20 @@ async function main() {
           reorderLevel: 10,
         },
       });
+      if (p.trackStock) {
+        const expSoon = new Date();
+        expSoon.setDate(expSoon.getDate() + 2);
+        await prisma.inventoryLot.create({
+          data: {
+            branchId: branch.id,
+            productId: p.id,
+            lotNo: `LOT-${branch.code}-${p.sku.slice(-4)}`,
+            quantity: 40,
+            expiryDate: expSoon,
+            sourceType: "SEED",
+          },
+        });
+      }
     }
   }
 
@@ -563,13 +583,14 @@ async function main() {
 
   console.log("Seeded Rezist ERP:");
   console.log("  admin@rezist.pk / rezist123");
+  console.log("  Manager PIN for void: 4321");
   console.log(
     "  Branches:",
     kitchen.code,
     warehouse.code,
     ...retailBranches.map((b) => b.code)
   );
-  console.log("  Phase 1: Purchases/GRN, transfer receive, kitchen board, audit");
+  console.log("  Phase 2: production demand plan, costing, lots/FEFO, reorder, POS shifts");
 }
 
 main()

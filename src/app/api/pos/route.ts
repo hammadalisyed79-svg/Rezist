@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { adjustStock, getBranchPrice } from "@/lib/inventory";
@@ -18,11 +19,28 @@ export async function GET(req: NextRequest) {
       ...(branchId ? { branchId } : {}),
       voided: false,
     },
-    include: { lines: { include: { product: true } }, branch: true, cashier: true },
+    include: { lines: { include: { product: true } }, branch: true, cashier: true, shift: true },
     orderBy: { createdAt: "desc" },
     take: 100,
   });
   return NextResponse.json({ sales });
+}
+
+async function verifyManagerPin(sessionBranchId: string | null, pin: string) {
+  const managers = await prisma.user.findMany({
+    where: {
+      active: true,
+      role: { in: ["HQ_ADMIN", "BRANCH_MANAGER"] },
+      managerPinHash: { not: null },
+      ...(sessionBranchId
+        ? { OR: [{ role: "HQ_ADMIN" }, { branchId: sessionBranchId }] }
+        : {}),
+    },
+  });
+  for (const m of managers) {
+    if (m.managerPinHash && (await bcrypt.compare(pin, m.managerPinHash))) return m;
+  }
+  return null;
 }
 
 export async function POST(req: NextRequest) {
@@ -34,9 +52,15 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
 
   if (body.action === "void") {
-    if (!can(session.role, "voidSale")) {
-      return NextResponse.json({ error: "Manager/HQ required to void" }, { status: 403 });
+    const pin = String(body.managerPin || "");
+    const manager = await verifyManagerPin(session.branchId, pin);
+    if (!manager && !can(session.role, "voidSale")) {
+      return NextResponse.json({ error: "Manager PIN required to void" }, { status: 403 });
     }
+    if (!manager && session.role === "CASHIER") {
+      return NextResponse.json({ error: "Invalid manager PIN" }, { status: 403 });
+    }
+
     const sale = await prisma.sale.findUnique({
       where: { id: String(body.saleId) },
       include: { lines: true },
@@ -56,7 +80,7 @@ export async function POST(req: NextRequest) {
         where: { id: sale.id },
         data: {
           voided: true,
-          voidReason: String(body.reason || "Manager void"),
+          voidReason: String(body.reason || `Void by ${manager?.name || session.name}`),
         },
       });
     });
@@ -68,7 +92,7 @@ export async function POST(req: NextRequest) {
       entityId: sale.id,
       branchId: sale.branchId,
       summary: `Voided ${sale.saleNo}`,
-      meta: { reason: body.reason || "Manager void" },
+      meta: { managerId: manager?.id, reason: body.reason },
     });
 
     return NextResponse.json({ ok: true });
@@ -78,6 +102,16 @@ export async function POST(req: NextRequest) {
   if (!branchId) return NextResponse.json({ error: "branchId required" }, { status: 400 });
   if (session.role !== "HQ_ADMIN" && session.branchId && session.branchId !== branchId) {
     return NextResponse.json({ error: "Cannot sell for another branch" }, { status: 403 });
+  }
+
+  const shiftId = String(body.shiftId || "");
+  const shift = shiftId
+    ? await prisma.posShift.findUnique({ where: { id: shiftId } })
+    : await prisma.posShift.findFirst({
+        where: { branchId, cashierId: session.id, status: "OPEN" },
+      });
+  if (!shift || shift.status !== "OPEN" || shift.branchId !== branchId) {
+    return NextResponse.json({ error: "Open a till shift before selling" }, { status: 400 });
   }
 
   const items: { productId: string; quantity: number }[] = body.items || [];
@@ -109,6 +143,8 @@ export async function POST(req: NextRequest) {
           saleNo: nextDocNo("POS", count + 1),
           branchId,
           cashierId: session.id,
+          shiftId: shift.id,
+          tillNo: shift.tillNo,
           channel: "POS",
           subtotal,
           tax: 0,
@@ -126,7 +162,7 @@ export async function POST(req: NextRequest) {
       entityType: "Sale",
       entityId: sale.id,
       branchId,
-      summary: `POS ${sale.saleNo} · ${sale.total}`,
+      summary: `POS ${sale.saleNo} · ${sale.tillNo} · ${sale.total}`,
     });
 
     return NextResponse.json({ sale }, { status: 201 });

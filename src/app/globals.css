@@ -2462,3 +2462,34 @@ textarea {
     grid-template-columns: repeat(5, minmax(200px, 1fr));
   }
 }
+
+.pos-shift-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.pos-void {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--erp-line);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.pos-void h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.badge.status-reserved,
+.badge.status-planned {
+  background: rgba(154, 123, 26, 0.15);
+  color: var(--gold-deep);
+}
+
+.stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}

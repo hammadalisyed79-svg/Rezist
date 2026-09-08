@@ -27,6 +27,7 @@ export default async function ProductionPage() {
         <div>
           <p className="eyebrow">Hybrid production</p>
           <h1>Bake plan & batches</h1>
+          <p className="muted">Demand planning reserves ingredients; complete posts finished lots with expiry.</p>
         </div>
       </header>
       <ProductionClient

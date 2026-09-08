@@ -2,6 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatPKR } from "@/lib/utils";
 import { ErpPage, requireErpUser } from "@/lib/erp";
+import { getExpiringLots } from "@/lib/inventory";
+import { getProductCosting } from "@/lib/costing";
+import { buildReorderSuggestions } from "@/lib/reorder";
 
 export default async function ErpDashboard() {
   const user = await requireErpUser();
@@ -11,27 +14,38 @@ export default async function ErpDashboard() {
   const branchFilter =
     user.role === "HQ_ADMIN" ? undefined : { branchId: user.branchId || undefined };
 
-  const [saleAgg, branchCount, lowStock, pendingOrders] = await Promise.all([
-    prisma.sale.findMany({
-      where: { createdAt: { gte: since }, ...branchFilter },
-      select: { total: true },
-    }),
-    prisma.branch.count({ where: { active: true, type: "RETAIL" } }),
-    prisma.inventoryItem.findMany({
-      where: {
-        ...(user.role === "HQ_ADMIN" ? {} : { branchId: user.branchId || undefined }),
-        product: { trackStock: true },
-      },
-      include: { product: true, branch: true },
-      take: 200,
-    }),
-    prisma.onlineOrder.count({
-      where: { status: "PENDING", ...branchFilter },
-    }),
-  ]);
+  const [saleAgg, branchCount, lowStock, pendingOrders, expiring, costing, reorders] =
+    await Promise.all([
+      prisma.sale.findMany({
+        where: { createdAt: { gte: since }, voided: false, ...branchFilter },
+        select: { total: true },
+      }),
+      prisma.branch.count({ where: { active: true, type: "RETAIL" } }),
+      prisma.inventoryItem.findMany({
+        where: {
+          ...(user.role === "HQ_ADMIN" ? {} : { branchId: user.branchId || undefined }),
+          product: { trackStock: true },
+        },
+        include: { product: true, branch: true },
+        take: 200,
+      }),
+      prisma.onlineOrder.count({
+        where: { status: "PENDING", ...branchFilter },
+      }),
+      getExpiringLots(user.role === "HQ_ADMIN" ? undefined : user.branchId || undefined, 3),
+      user.role === "CASHIER" ? Promise.resolve([]) : getProductCosting(),
+      user.role === "CASHIER"
+        ? Promise.resolve([])
+        : buildReorderSuggestions().then((s) =>
+            user.role === "HQ_ADMIN" ? s : s.filter((x) => x.branchId === user.branchId)
+          ),
+    ]);
 
   const revenue = saleAgg.reduce((a, s) => a + s.total, 0);
-  const stockAlerts = lowStock.filter((i) => i.quantity <= i.reorderLevel).slice(0, 8);
+  const stockAlerts = lowStock
+    .filter((i) => i.quantity - (i.reservedQty || 0) <= i.reorderLevel)
+    .slice(0, 8);
+  const lowMargin = costing.filter((c) => c.lowMargin).slice(0, 5);
 
   return (
     <ErpPage user={user}>
@@ -62,10 +76,23 @@ export default async function ErpDashboard() {
           <span>Pending web orders</span>
           <strong>{pendingOrders}</strong>
         </article>
+        <article>
+          <span>Expiring ≤3d</span>
+          <strong>{expiring.length}</strong>
+        </article>
+        <article>
+          <span>Reorder alerts</span>
+          <strong>{reorders.length}</strong>
+        </article>
       </section>
 
       <section className="panel">
-        <h2>Low stock alerts</h2>
+        <div className="lz-shop-head">
+          <h2>Low stock</h2>
+          <Link className="text-link" href="/erp/reorder">
+            Reorder →
+          </Link>
+        </div>
         {stockAlerts.length === 0 ? (
           <p className="muted">All tracked items are above reorder level.</p>
         ) : (
@@ -74,7 +101,7 @@ export default async function ErpDashboard() {
               <tr>
                 <th>Branch</th>
                 <th>Product</th>
-                <th>Qty</th>
+                <th>Avail</th>
                 <th>Reorder</th>
               </tr>
             </thead>
@@ -83,7 +110,7 @@ export default async function ErpDashboard() {
                 <tr key={i.id}>
                   <td>{i.branch.name}</td>
                   <td>{i.product.name}</td>
-                  <td>{i.quantity}</td>
+                  <td>{i.quantity - (i.reservedQty || 0)}</td>
                   <td>{i.reorderLevel}</td>
                 </tr>
               ))}
@@ -91,6 +118,65 @@ export default async function ErpDashboard() {
           </table>
         )}
       </section>
+
+      {expiring.length ? (
+        <section className="panel">
+          <h2>FEFO · expiring soon</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Branch</th>
+                <th>Product</th>
+                <th>Lot</th>
+                <th>Qty</th>
+                <th>Expiry</th>
+              </tr>
+            </thead>
+            <tbody>
+              {expiring.slice(0, 8).map((l) => (
+                <tr key={l.id} className="warn-row">
+                  <td>{l.branch.name}</td>
+                  <td>{l.product.name}</td>
+                  <td>{l.lotNo}</td>
+                  <td>{l.quantity}</td>
+                  <td>{l.expiryDate ? l.expiryDate.toLocaleDateString() : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ) : null}
+
+      {lowMargin.length ? (
+        <section className="panel">
+          <div className="lz-shop-head">
+            <h2>Low margin products</h2>
+            <Link className="text-link" href="/erp/costing">
+              Costing →
+            </Link>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Sell</th>
+                <th>Cost</th>
+                <th>Margin %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lowMargin.map((r) => (
+                <tr key={r.productId} className="warn-row">
+                  <td>{r.name}</td>
+                  <td>{formatPKR(r.listPrice)}</td>
+                  <td>{formatPKR(r.effectiveCost)}</td>
+                  <td>{r.marginPct.toFixed(0)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ) : null}
     </ErpPage>
   );
 }

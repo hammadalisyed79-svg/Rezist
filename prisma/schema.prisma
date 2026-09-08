@@ -10,16 +10,17 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String
-  role         String   @default("CASHIER")
-  branchId     String?
-  branch       Branch?  @relation(fields: [branchId], references: [id])
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  passwordHash   String
+  managerPinHash String?
+  role           String   @default("CASHIER")
+  branchId       String?
+  branch         Branch?  @relation(fields: [branchId], references: [id])
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   sales           Sale[]
   dayCloses       DayClose[]
@@ -31,6 +32,7 @@ model User {
   purchases       PurchaseOrder[]  @relation("PurchaseCreatedBy")
   purchasesRecv   PurchaseOrder[]  @relation("PurchaseReceivedBy")
   auditLogs       AuditLog[]
+  shifts          PosShift[]
 }
 
 model Branch {
@@ -47,6 +49,7 @@ model Branch {
 
   users          User[]
   inventory      InventoryItem[]
+  lots           InventoryLot[]
   priceOverrides PriceOverride[]
   sales          Sale[]
   dayCloses      DayClose[]
@@ -56,6 +59,7 @@ model Branch {
   wastage        WastageRecord[]
   onlineOrders   OnlineOrder[]
   purchases      PurchaseOrder[]
+  shifts         PosShift[]
 }
 
 model Category {
@@ -90,6 +94,7 @@ model Product {
   recipeItems     RecipeItem[]        @relation("ParentProduct")
   usedInRecipes   RecipeItem[]        @relation("IngredientProduct")
   inventory       InventoryItem[]
+  lots            InventoryLot[]
   priceOverrides  PriceOverride[]
   saleLines       SaleLine[]
   transferLines   StockTransferLine[]
@@ -118,10 +123,45 @@ model InventoryItem {
   productId    String
   product      Product  @relation(fields: [productId], references: [id])
   quantity     Float    @default(0)
+  reservedQty  Float    @default(0)
   reorderLevel Float    @default(0)
   updatedAt    DateTime @updatedAt
 
   @@unique([branchId, productId])
+}
+
+model InventoryLot {
+  id         String    @id @default(cuid())
+  branchId   String
+  branch     Branch    @relation(fields: [branchId], references: [id])
+  productId  String
+  product    Product   @relation(fields: [productId], references: [id])
+  lotNo      String
+  quantity   Float     @default(0)
+  expiryDate DateTime?
+  receivedAt DateTime  @default(now())
+  sourceType String?
+  sourceId   String?
+
+  @@index([branchId, productId, expiryDate])
+}
+
+model PosShift {
+  id          String    @id @default(cuid())
+  branchId    String
+  branch      Branch    @relation(fields: [branchId], references: [id])
+  tillNo      String    @default("TILL-1")
+  cashierId   String
+  cashier     User      @relation(fields: [cashierId], references: [id])
+  status      String    @default("OPEN")
+  openingCash Float     @default(0)
+  closingCash Float?
+  openedAt    DateTime  @default(now())
+  closedAt    DateTime?
+  notes       String?
+  sales       Sale[]
+
+  @@index([branchId, status])
 }
 
 model PriceOverride {
@@ -215,20 +255,23 @@ model PurchaseOrderLine {
 }
 
 model Sale {
-  id            String   @id @default(cuid())
-  saleNo        String   @unique
+  id            String    @id @default(cuid())
+  saleNo        String    @unique
   branchId      String
-  branch        Branch   @relation(fields: [branchId], references: [id])
+  branch        Branch    @relation(fields: [branchId], references: [id])
   cashierId     String?
-  cashier       User?    @relation(fields: [cashierId], references: [id])
-  channel       String   @default("POS")
+  cashier       User?     @relation(fields: [cashierId], references: [id])
+  shiftId       String?
+  shift         PosShift? @relation(fields: [shiftId], references: [id])
+  tillNo        String?
+  channel       String    @default("POS")
   subtotal      Float
-  tax           Float    @default(0)
+  tax           Float     @default(0)
   total         Float
-  paymentMethod String   @default("CASH")
-  voided        Boolean  @default(false)
+  paymentMethod String    @default("CASH")
+  voided        Boolean   @default(false)
   voidReason    String?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
   lines         SaleLine[]
   onlineOrder   OnlineOrder?
 }

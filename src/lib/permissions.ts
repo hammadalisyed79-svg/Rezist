@@ -18,6 +18,8 @@ export const permissions = {
   audit: ["HQ_ADMIN"] as Role[],
   voidSale: ["HQ_ADMIN", "BRANCH_MANAGER"] as Role[],
   adjustStock: ["HQ_ADMIN", "BRANCH_MANAGER"] as Role[],
+  costing: ["HQ_ADMIN", "BRANCH_MANAGER"] as Role[],
+  reorder: ["HQ_ADMIN", "BRANCH_MANAGER"] as Role[],
 };
 
 export function can(role: Role, capability: keyof typeof permissions) {

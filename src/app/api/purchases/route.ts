@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextDocNo } from "@/lib/utils";
-import { adjustStock } from "@/lib/inventory";
+import { receiveStock } from "@/lib/inventory";
 import { writeAudit } from "@/lib/audit";
 import { can } from "@/lib/permissions";
 
@@ -94,7 +94,16 @@ export async function POST(req: NextRequest) {
             continue;
           }
           const nextRecv = line.receivedQty + addQty;
-          await adjustStock(purchase.branchId, line.productId, addQty);
+          const expiry = new Date();
+          expiry.setDate(expiry.getDate() + Number(body.expiryDays || 90));
+          await receiveStock({
+            branchId: purchase.branchId,
+            productId: line.productId,
+            quantity: addQty,
+            expiryDate: expiry,
+            sourceType: "PURCHASE",
+            sourceId: purchase.id,
+          });
           await prisma.purchaseOrderLine.update({
             where: { id: line.id },
             data: { receivedQty: nextRecv },
