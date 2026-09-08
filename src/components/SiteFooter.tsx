@@ -1,10 +1,28 @@
 import Link from "next/link";
+import Image from "next/image";
+import { brand } from "@/lib/brand";
 
 export function SiteFooter() {
   return (
     <footer className="site-footer">
-      <strong>Rezist</strong>
-      <p>Multi-branch bakery · Pakistan</p>
+      <div className="footer-brand">
+        <Image src={brand.logo} alt={brand.name} width={56} height={56} />
+        <div>
+          <strong>{brand.name}</strong>
+          <p>{brand.slogan}</p>
+        </div>
+      </div>
+      <div className="footer-meta">
+        <p>{brand.hqAddress}</p>
+        <a href={brand.phoneHref}>{brand.phone}</a>
+        <a href={brand.emailHref}>{brand.email}</a>
+        <a href={brand.instagramUrl} target="_blank" rel="noreferrer">
+          Instagram @{brand.instagram}
+        </a>
+        <a href={brand.facebookUrl} target="_blank" rel="noreferrer">
+          Facebook Rezistpk
+        </a>
+      </div>
       <Link href="/erp/login">Operations login</Link>
     </footer>
   );

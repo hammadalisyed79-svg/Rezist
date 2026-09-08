@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -38,10 +39,10 @@ export function ErpShell({
     <div className="erp-shell">
       <aside className="erp-sidebar">
         <div className="erp-brand">
-          <span className="erp-brand-mark">R</span>
+          <Image src="/brand/logo.jpg" alt="Rezist" width={40} height={40} className="erp-logo" />
           <div>
             <strong>Rezist ERP</strong>
-            <small>Multi-branch bakery</small>
+            <small>IF YOU CAN</small>
           </div>
         </div>
         <nav>

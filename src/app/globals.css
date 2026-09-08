@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f6efe4;
-  --bg-deep: #e8dcc8;
-  --ink: #1c1410;
-  --muted: #6b5a4c;
-  --accent: #8b2e1f;
-  --accent-2: #c45c26;
-  --panel: #fffaf3;
-  --line: rgba(28, 20, 16, 0.12);
-  --ok: #1f6b3a;
-  --err: #9b1c1c;
-  --erp-bg: #14110f;
-  --erp-panel: #1e1916;
-  --erp-line: rgba(255, 246, 235, 0.1);
+  --bg: #0a0a0a;
+  --bg-deep: #121212;
+  --ink: #f7f1e6;
+  --muted: #b7aa98;
+  --accent: #c08f3c;
+  --accent-2: #d4a84b;
+  --panel: #161616;
+  --line: rgba(192, 143, 60, 0.28);
+  --ok: #7ddea3;
+  --err: #ffb4b4;
+  --erp-bg: #0a0a0a;
+  --erp-panel: #141414;
+  --erp-line: rgba(192, 143, 60, 0.2);
 }
 
 @theme inline {
@@ -55,28 +55,51 @@ textarea {
 .site {
   min-height: 100vh;
   background:
-    radial-gradient(ellipse 80% 50% at 10% 0%, rgba(196, 92, 38, 0.18), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(139, 46, 31, 0.12), transparent 50%),
-    linear-gradient(180deg, #f8f1e6 0%, #efe3d2 45%, #f6efe4 100%);
+    radial-gradient(ellipse 70% 45% at 15% 0%, rgba(192, 143, 60, 0.18), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 90% 20%, rgba(192, 143, 60, 0.08), transparent 50%),
+    linear-gradient(180deg, #0a0a0a 0%, #101010 50%, #0a0a0a 100%);
+  color: var(--ink);
 }
 
 .site-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 6vw;
+  padding: 1rem 6vw;
   position: sticky;
   top: 0;
-  backdrop-filter: blur(10px);
-  background: rgba(246, 239, 228, 0.82);
+  backdrop-filter: blur(12px);
+  background: rgba(10, 10, 10, 0.88);
   border-bottom: 1px solid var(--line);
   z-index: 20;
 }
 
 .logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   font-family: var(--font-display), serif;
-  font-size: 1.75rem;
   letter-spacing: 0.02em;
+}
+
+.logo-img {
+  border-radius: 50%;
+  border: 1px solid var(--line);
+}
+
+.logo strong {
+  display: block;
+  color: var(--accent);
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.logo small {
+  display: block;
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  color: var(--muted);
 }
 
 .site-header nav {
@@ -102,24 +125,39 @@ textarea {
 
 .brand-lockup {
   font-family: var(--font-display), serif;
-  font-size: clamp(3rem, 8vw, 6.5rem);
+  font-size: clamp(2.8rem, 7vw, 5.5rem);
   line-height: 0.9;
-  margin: 0 0 1rem;
+  margin: 0.75rem 0 0.35rem;
   color: var(--accent);
   animation: rise 0.9s ease both;
 }
 
+.tagline-line {
+  letter-spacing: 0.28em;
+  font-size: 0.8rem;
+  color: #fff;
+  margin: 0 0 1rem;
+  animation: rise 0.95s ease 0.05s both;
+}
+
+.hero-logo {
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  animation: rise 0.8s ease both;
+}
+
 .hero h1 {
   font-family: var(--font-display), serif;
-  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
   font-weight: 500;
   margin: 0 0 1rem;
-  max-width: 16ch;
+  max-width: 18ch;
+  color: #fff;
   animation: rise 1s ease 0.08s both;
 }
 
 .lede {
-  max-width: 36ch;
+  max-width: 38ch;
   color: var(--muted);
   font-size: 1.05rem;
   line-height: 1.6;
@@ -130,53 +168,26 @@ textarea {
   display: flex;
   gap: 0.75rem;
   margin-top: 1.75rem;
+  flex-wrap: wrap;
   animation: rise 1s ease 0.24s both;
 }
 
 .hero-visual {
   position: relative;
-  min-height: 420px;
-  border-radius: 0;
+  min-height: 520px;
   overflow: hidden;
-  background:
-    linear-gradient(145deg, rgba(28, 20, 16, 0.92), rgba(139, 46, 31, 0.75)),
-    repeating-linear-gradient(
-      -12deg,
-      transparent,
-      transparent 12px,
-      rgba(255, 255, 255, 0.03) 12px,
-      rgba(255, 255, 255, 0.03) 24px
-    );
+  border: 1px solid var(--line);
   animation: fadein 1.2s ease both;
 }
 
-.hero-glow {
-  position: absolute;
-  inset: 20% 15%;
-  background: radial-gradient(circle, rgba(255, 186, 120, 0.35), transparent 70%);
-  filter: blur(10px);
-  animation: pulse 4s ease-in-out infinite;
+.hero-photo {
+  object-fit: cover;
+  object-position: center;
 }
 
+.hero-glow,
 .hero-plate {
-  position: absolute;
-  inset: auto 8% 8% 8%;
-  color: #fff8ef;
-  z-index: 1;
-}
-
-.hero-plate span {
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 0.72rem;
-  opacity: 0.8;
-}
-
-.hero-plate strong {
-  display: block;
-  font-family: var(--font-display), serif;
-  font-size: 1.8rem;
-  margin: 0.4rem 0;
+  display: none;
 }
 
 .btn,
@@ -190,14 +201,14 @@ textarea {
   cursor: pointer;
   border-radius: 999px;
   background: var(--accent);
-  color: #fff8ef;
-  font-weight: 600;
+  color: #0a0a0a;
+  font-weight: 700;
 }
 
 .btn-ghost {
   background: transparent;
-  border-color: var(--ink);
-  color: var(--ink);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .btn-sm {
@@ -231,7 +242,7 @@ textarea {
 }
 
 .muted-section {
-  background: rgba(28, 20, 16, 0.04);
+  background: rgba(192, 143, 60, 0.05);
 }
 
 .menu-row,
@@ -244,10 +255,27 @@ textarea {
 
 .menu-item,
 .branch-card {
-  background: rgba(255, 250, 243, 0.72);
+  background: rgba(22, 22, 22, 0.9);
   border: 1px solid var(--line);
   padding: 1.1rem;
   text-align: left;
+}
+
+.brand-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.gallery-frame {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.gallery-frame img {
+  object-fit: cover;
 }
 
 .menu-item h3,
@@ -323,7 +351,7 @@ input,
 select,
 textarea {
   border: 1px solid var(--line);
-  background: #fff;
+  background: #0f0f0f;
   padding: 0.55rem 0.7rem;
   border-radius: 8px;
   color: var(--ink);
@@ -338,15 +366,48 @@ textarea {
 .site-footer {
   padding: 2.5rem 6vw;
   border-top: 1px solid var(--line);
-  display: flex;
+  display: grid;
+  grid-template-columns: 1.2fr 1.4fr auto;
   gap: 1.5rem;
-  align-items: baseline;
-  flex-wrap: wrap;
+  align-items: start;
 }
 
-.site-footer strong {
+.footer-brand {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.footer-brand img {
+  border-radius: 50%;
+  border: 1px solid var(--line);
+}
+
+.footer-brand strong {
   font-family: var(--font-display), serif;
   font-size: 1.4rem;
+  color: var(--accent);
+  display: block;
+}
+
+.footer-brand p,
+.footer-meta p {
+  color: var(--muted);
+  margin: 0.2rem 0;
+}
+
+.footer-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.footer-meta a {
+  color: var(--ink);
+}
+
+.footer-meta a:hover {
+  color: var(--accent);
 }
 
 .text-link {
@@ -452,6 +513,11 @@ textarea {
   border-radius: 8px;
   font-family: var(--font-display), serif;
   font-weight: 700;
+}
+
+.erp-logo {
+  border-radius: 50%;
+  border: 1px solid var(--erp-line);
 }
 
 .erp-brand strong {
@@ -743,7 +809,9 @@ textarea {
   .order-layout,
   .pos-grid,
   .two-col,
-  .erp-shell {
+  .erp-shell,
+  .site-footer,
+  .brand-gallery {
     grid-template-columns: 1fr;
   }
 

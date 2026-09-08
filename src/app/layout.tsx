@@ -15,8 +15,9 @@ const body = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "Rezist — Bakery ERP & Website",
-  description: "Multi-branch bakery operations and ordering across Pakistan",
+  title: "Rezist! IF YOU CAN — Dessert Shop & Bakery ERP",
+  description:
+    "An Ir-Rezistable Delight. Multi-branch dessert shop from Gujrat across Pakistan. Order cakes, brownies, and daily bake.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

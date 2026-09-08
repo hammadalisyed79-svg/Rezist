@@ -25,44 +25,44 @@ async function main() {
 
   const kitchen = await prisma.branch.create({
     data: {
-      code: "CK-LHR",
-      name: "Rezist Central Kitchen Lahore",
-      city: "Lahore",
-      address: "Industrial Estate, Kot Lakhpat",
-      phone: "+92-42-111-734-948",
+      code: "CK-GUJ",
+      name: "Rezist Central Kitchen Gujrat",
+      city: "Gujrat",
+      address: "Rehman Shaheed Road production unit",
+      phone: "+92 331 4213137",
       type: BranchType.CENTRAL_KITCHEN,
     },
   });
 
   const warehouse = await prisma.branch.create({
     data: {
-      code: "WH-LHR",
-      name: "Rezist Warehouse Lahore",
-      city: "Lahore",
-      address: "Plot 12, Sundar Industrial Estate",
-      phone: "+92-42-111-734-949",
+      code: "WH-GUJ",
+      name: "Rezist Warehouse Gujrat",
+      city: "Gujrat",
+      address: "Rehman Shaheed Road storage",
+      phone: "+92 331 4213137",
       type: BranchType.WAREHOUSE,
     },
   });
 
-  const gulberg = await prisma.branch.create({
+  const gujrat = await prisma.branch.create({
     data: {
-      code: "LHR-01",
-      name: "Rezist Gulberg",
-      city: "Lahore",
-      address: "MM Alam Road, Gulberg III",
-      phone: "+92-42-3578-1001",
+      code: "GUJ-01",
+      name: "Rezist Gujrat",
+      city: "Gujrat",
+      address: "Rehman Shaheed Road, Gujrat, 50700",
+      phone: "+92 331 4213137",
       type: BranchType.RETAIL,
     },
   });
 
-  const f7 = await prisma.branch.create({
+  const jhelum = await prisma.branch.create({
     data: {
-      code: "ISB-01",
-      name: "Rezist F-7 Markaz",
-      city: "Islamabad",
-      address: "Jinnah Super, F-7 Markaz",
-      phone: "+92-51-265-1001",
+      code: "JHL-01",
+      name: "Rezist Jhelum Cantt",
+      city: "Jhelum",
+      address: "Jhelum Cantonment",
+      phone: "+92 331 4213137",
       type: BranchType.RETAIL,
     },
   });
@@ -78,25 +78,25 @@ async function main() {
         role: Role.HQ_ADMIN,
       },
       {
-        email: "manager.gulberg@rezist.pk",
-        name: "Ayesha Manager",
+        email: "manager.gujrat@rezist.pk",
+        name: "Branch Manager Gujrat",
         passwordHash,
         role: Role.BRANCH_MANAGER,
-        branchId: gulberg.id,
+        branchId: gujrat.id,
       },
       {
-        email: "cashier.gulberg@rezist.pk",
-        name: "Ali Cashier",
+        email: "cashier.gujrat@rezist.pk",
+        name: "Cashier Gujrat",
         passwordHash,
         role: Role.CASHIER,
-        branchId: gulberg.id,
+        branchId: gujrat.id,
       },
       {
-        email: "manager.f7@rezist.pk",
-        name: "Sara Manager",
+        email: "manager.jhelum@rezist.pk",
+        name: "Branch Manager Jhelum",
         passwordHash,
         role: Role.BRANCH_MANAGER,
-        branchId: f7.id,
+        branchId: jhelum.id,
       },
     ],
   });
@@ -183,14 +183,28 @@ async function main() {
     }),
     prisma.product.create({
       data: {
+        sku: "CAK-CADB-01",
+        name: "Cadbury Cake",
+        description: "Signature Cadbury chocolate cake — rich, moist, Ir-Rezistable",
+        type: ProductType.FINISHED,
+        categoryId: bySlug.cakes.id,
+        listPrice: 3500,
+        costPrice: 1750,
+        allergens: "Gluten, Dairy, Eggs, Soy",
+        imageUrl: "/brand/hero-cake.jpg",
+      },
+    }),
+    prisma.product.create({
+      data: {
         sku: "CAK-CHOC-01",
         name: "Chocolate Fudge Cake",
-        description: "Rich chocolate cake — whole",
+        description: "Rich chocolate cake with hazelnut finish — whole",
         type: ProductType.FINISHED,
         categoryId: bySlug.cakes.id,
         listPrice: 3200,
         costPrice: 1600,
-        allergens: "Gluten, Dairy, Eggs",
+        allergens: "Gluten, Dairy, Eggs, Nuts",
+        imageUrl: "/brand/hero-cake.jpg",
       },
     }),
     prisma.product.create({
@@ -290,7 +304,7 @@ async function main() {
     }
   }
 
-  for (const branch of [gulberg, f7]) {
+  for (const branch of [gujrat, jhelum]) {
     for (const p of finished) {
       await prisma.inventoryItem.create({
         data: {
@@ -305,7 +319,7 @@ async function main() {
 
   console.log("Seeded Rezist ERP:");
   console.log("  admin@rezist.pk / rezist123");
-  console.log("  Branches:", kitchen.code, warehouse.code, gulberg.code, f7.code);
+  console.log("  Branches:", kitchen.code, warehouse.code, gujrat.code, jhelum.code);
 }
 
 main()
