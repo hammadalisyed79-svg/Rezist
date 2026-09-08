@@ -116,11 +116,23 @@ export async function POST(req: NextRequest) {
             data: { receivedQty },
           });
           const shipped = line.shippedQty || line.quantity;
-          if (Math.abs(shipped - receivedQty) > 0.0001) {
+          const short = shipped - receivedQty;
+          if (Math.abs(short) > 0.0001) {
             variances.push({
               product: line.product.name,
               shipped,
               received: receivedQty,
+            });
+          }
+          if (short > 0.0001) {
+            await prisma.wastageRecord.create({
+              data: {
+                branchId: transfer.fromBranchId,
+                productId: line.productId,
+                quantity: short,
+                reason: `Transfer variance ${transfer.transferNo} (ship ${shipped}/recv ${receivedQty})`,
+                recordedById: session.id,
+              },
             });
           }
         }
@@ -199,7 +211,7 @@ export async function POST(req: NextRequest) {
       include: { lines: { include: { product: true } }, fromBranch: true, toBranch: true },
     });
 
-    const autoShip = body.autoShip !== false;
+    const autoShip = body.autoShip === true;
     if (autoShip) {
       await prisma.$transaction(async () => {
         for (const line of transfer.lines) {

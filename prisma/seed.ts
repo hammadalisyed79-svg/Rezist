@@ -8,6 +8,7 @@ async function main() {
   await prisma.auditLog.deleteMany();
   await prisma.loyaltyLedger.deleteMany();
   await prisma.attendance.deleteMany();
+  await prisma.mobileApiToken.deleteMany();
   await prisma.promotionItem.deleteMany();
   await prisma.promotion.deleteMany();
   await prisma.inventoryLot.deleteMany();
@@ -17,6 +18,7 @@ async function main() {
   await prisma.supplier.deleteMany();
   await prisma.onlineOrderLine.deleteMany();
   await prisma.onlineOrder.deleteMany();
+  await prisma.deliveryRider.deleteMany();
   await prisma.wastageRecord.deleteMany();
   await prisma.productionLine.deleteMany();
   await prisma.productionBatch.deleteMany();
@@ -615,6 +617,40 @@ async function main() {
     },
   });
 
+  for (const p of products) {
+    await prisma.product.update({
+      where: { id: p.id },
+      data: { barcode: p.sku },
+    });
+  }
+
+  if (cake) {
+    await prisma.priceOverride.create({
+      data: {
+        branchId: gujrat.id,
+        productId: cake.id,
+        price: Math.max(100, cake.listPrice - 50),
+      },
+    });
+  }
+
+  await prisma.deliveryRider.createMany({
+    data: [
+      {
+        name: "Ali Rider",
+        phone: "03001234567",
+        vehicle: "Bike",
+        branchId: gujrat.id,
+      },
+      {
+        name: "Sara Dispatch",
+        phone: "03007654321",
+        vehicle: "Bike",
+        branchId: retailBranches[1]?.id || gujrat.id,
+      },
+    ],
+  });
+
   console.log("Seeded Rezist ERP:");
   console.log("  admin@rezist.pk / rezist123");
   console.log("  Manager PIN for void: 4321");
@@ -624,7 +660,7 @@ async function main() {
     warehouse.code,
     ...retailBranches.map((b) => b.code)
   );
-  console.log("  Phase 3: HQ, promos, CRM, staff, accounting + Phase1/2 gaps");
+  console.log("  Phase 4: delivery, barcode POS, offline queue, mobile API");
 }
 
 main()

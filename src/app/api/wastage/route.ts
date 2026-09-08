@@ -3,10 +3,14 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { adjustStock } from "@/lib/inventory";
 import { resolveBranchScope } from "@/lib/utils";
+import { can } from "@/lib/permissions";
+import { writeAudit } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session || !can(session.role, "wastage")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const branchId = resolveBranchScope(session, req.nextUrl.searchParams.get("branchId"));
 
   const records = await prisma.wastageRecord.findMany({
@@ -20,7 +24,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session || !can(session.role, "wastage")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const body = await req.json();
   const branchId = resolveBranchScope(session, body.branchId);
@@ -40,6 +46,16 @@ export async function POST(req: NextRequest) {
         include: { product: true, branch: true },
       });
     });
+
+    await writeAudit({
+      actor: session,
+      action: "WASTAGE",
+      entityType: "WastageRecord",
+      entityId: record.id,
+      branchId,
+      summary: `Wastage ${record.quantity} × ${record.product.name}`,
+    });
+
     return NextResponse.json({ record }, { status: 201 });
   } catch (e) {
     return NextResponse.json(

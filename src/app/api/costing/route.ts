@@ -6,7 +6,7 @@ import { writeAudit } from "@/lib/audit";
 
 export async function GET() {
   const session = await getSession();
-  if (!session || !can(session.role, "products")) {
+  if (!session || !can(session.role, "costing")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const rows = await getProductCosting();

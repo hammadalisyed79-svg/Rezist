@@ -10,12 +10,19 @@ export async function GET(req: NextRequest) {
   if (!session || !can(session.role, "promotions")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const promos = await prisma.promotion.findMany({
-    include: { branch: true, items: { include: { product: true } } },
-    orderBy: { startsAt: "desc" },
-    take: 80,
-  });
-  return NextResponse.json({ promotions: promos });
+  const [promos, overrides] = await Promise.all([
+    prisma.promotion.findMany({
+      include: { branch: true, items: { include: { product: true } } },
+      orderBy: { startsAt: "desc" },
+      take: 80,
+    }),
+    prisma.priceOverride.findMany({
+      include: { product: true, branch: true },
+      take: 100,
+      orderBy: { branch: { name: "asc" } },
+    }),
+  ]);
+  return NextResponse.json({ promotions: promos, overrides });
 }
 
 export async function POST(req: NextRequest) {
@@ -32,6 +39,52 @@ export async function POST(req: NextRequest) {
       data: { active: Boolean(body.active) },
     });
     return NextResponse.json({ promotion: promo });
+  }
+
+  if (action === "setPriceOverride") {
+    const branchId = String(body.branchId || "");
+    const productId = String(body.productId || "");
+    const price = Number(body.price);
+    if (!branchId || !productId || Number.isNaN(price)) {
+      return NextResponse.json({ error: "branchId, productId, price required" }, { status: 400 });
+    }
+    if (session.role !== "HQ_ADMIN" && session.branchId !== branchId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const override = await prisma.priceOverride.upsert({
+      where: { branchId_productId: { branchId, productId } },
+      create: { branchId, productId, price },
+      update: { price },
+      include: { product: true, branch: true },
+    });
+    await writeAudit({
+      actor: session,
+      action: "PRICE_OVERRIDE",
+      entityType: "PriceOverride",
+      entityId: override.id,
+      branchId,
+      summary: `Branch price ${override.product.name} → ${price}`,
+    });
+    return NextResponse.json({ override });
+  }
+
+  if (action === "clearPriceOverride") {
+    await prisma.priceOverride.delete({
+      where: {
+        branchId_productId: {
+          branchId: String(body.branchId),
+          productId: String(body.productId),
+        },
+      },
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (session.role !== "HQ_ADMIN" && body.branchId && body.branchId !== session.branchId) {
+    return NextResponse.json({ error: "Can only create promos for your branch" }, { status: 403 });
+  }
+  if (session.role !== "HQ_ADMIN" && !body.branchId && !body.city) {
+    body.branchId = session.branchId;
   }
 
   const count = await prisma.promotion.count();

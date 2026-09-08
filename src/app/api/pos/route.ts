@@ -6,6 +6,7 @@ import { adjustStock, getBranchPrice } from "@/lib/inventory";
 import { nextDocNo, resolveBranchScope } from "@/lib/utils";
 import { writeAudit } from "@/lib/audit";
 import { can } from "@/lib/permissions";
+import { upsertCustomerFromOrder } from "@/lib/pricing";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -14,12 +15,31 @@ export async function GET(req: NextRequest) {
   }
 
   const branchId = resolveBranchScope(session, req.nextUrl.searchParams.get("branchId"));
+  const barcode = req.nextUrl.searchParams.get("barcode");
+  if (barcode) {
+    const product = await prisma.product.findFirst({
+      where: {
+        active: true,
+        isSellable: true,
+        OR: [{ barcode }, { sku: barcode }],
+      },
+      include: { category: true },
+    });
+    return NextResponse.json({ product });
+  }
+
   const sales = await prisma.sale.findMany({
     where: {
       ...(branchId ? { branchId } : {}),
       voided: false,
     },
-    include: { lines: { include: { product: true } }, branch: true, cashier: true, shift: true },
+    include: {
+      lines: { include: { product: true } },
+      branch: true,
+      cashier: true,
+      shift: true,
+      customer: true,
+    },
     orderBy: { createdAt: "desc" },
     take: 100,
   });
@@ -27,6 +47,7 @@ export async function GET(req: NextRequest) {
 }
 
 async function verifyManagerPin(sessionBranchId: string | null, pin: string) {
+  if (!pin) return null;
   const managers = await prisma.user.findMany({
     where: {
       active: true,
@@ -54,11 +75,8 @@ export async function POST(req: NextRequest) {
   if (body.action === "void") {
     const pin = String(body.managerPin || "");
     const manager = await verifyManagerPin(session.branchId, pin);
-    if (!manager && !can(session.role, "voidSale")) {
-      return NextResponse.json({ error: "Manager PIN required to void" }, { status: 403 });
-    }
-    if (!manager && session.role === "CASHIER") {
-      return NextResponse.json({ error: "Invalid manager PIN" }, { status: 403 });
+    if (!manager) {
+      return NextResponse.json({ error: "Valid manager PIN required to void" }, { status: 403 });
     }
 
     const sale = await prisma.sale.findUnique({
@@ -80,7 +98,7 @@ export async function POST(req: NextRequest) {
         where: { id: sale.id },
         data: {
           voided: true,
-          voidReason: String(body.reason || `Void by ${manager?.name || session.name}`),
+          voidReason: String(body.reason || `Void authorized by ${manager.name}`),
         },
       });
     });
@@ -92,16 +110,72 @@ export async function POST(req: NextRequest) {
       entityId: sale.id,
       branchId: sale.branchId,
       summary: `Voided ${sale.saleNo}`,
-      meta: { managerId: manager?.id, reason: body.reason },
+      meta: { managerId: manager.id, reason: body.reason },
     });
 
     return NextResponse.json({ ok: true });
   }
 
-  const branchId = resolveBranchScope(session, body.branchId);
-  if (!branchId) return NextResponse.json({ error: "branchId required" }, { status: 400 });
+  if (body.action === "syncOffline") {
+    const queued: {
+      clientKey: string;
+      branchId: string;
+      shiftId: string;
+      paymentMethod?: string;
+      customerPhone?: string;
+      customerName?: string;
+      items: { productId: string; quantity: number }[];
+      createdAt?: string;
+    }[] = body.sales || [];
+    const results: { clientKey: string; ok: boolean; saleNo?: string; error?: string }[] = [];
+    for (const q of queued) {
+      try {
+        const fakeReq = {
+          ...body,
+          action: undefined,
+          branchId: q.branchId,
+          shiftId: q.shiftId,
+          paymentMethod: q.paymentMethod,
+          customerPhone: q.customerPhone,
+          customerName: q.customerName,
+          items: q.items,
+          offlineKey: q.clientKey,
+        };
+        const res = await createSale(session, fakeReq);
+        results.push({ clientKey: q.clientKey, ok: true, saleNo: res.saleNo });
+      } catch (e) {
+        results.push({
+          clientKey: q.clientKey,
+          ok: false,
+          error: e instanceof Error ? e.message : "Failed",
+        });
+      }
+    }
+    return NextResponse.json({ results });
+  }
+
+  try {
+    const sale = await createSale(session, body);
+    return NextResponse.json({ sale }, { status: 201 });
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Sale failed" },
+      { status: 400 }
+    );
+  }
+}
+
+async function createSale(
+  session: { id: string; name: string; role: string; branchId: string | null },
+  body: Record<string, unknown>
+) {
+  const branchId = resolveBranchScope(
+    session as never,
+    typeof body.branchId === "string" ? body.branchId : null
+  );
+  if (!branchId) throw new Error("branchId required");
   if (session.role !== "HQ_ADMIN" && session.branchId && session.branchId !== branchId) {
-    return NextResponse.json({ error: "Cannot sell for another branch" }, { status: 403 });
+    throw new Error("Cannot sell for another branch");
   }
 
   const shiftId = String(body.shiftId || "");
@@ -111,65 +185,85 @@ export async function POST(req: NextRequest) {
         where: { branchId, cashierId: session.id, status: "OPEN" },
       });
   if (!shift || shift.status !== "OPEN" || shift.branchId !== branchId) {
-    return NextResponse.json({ error: "Open a till shift before selling" }, { status: 400 });
+    throw new Error("Open a till shift before selling");
   }
 
-  const items: { productId: string; quantity: number }[] = body.items || [];
-  if (!items.length) return NextResponse.json({ error: "Cart empty" }, { status: 400 });
+  const items: { productId: string; quantity: number }[] = (body.items as never) || [];
+  if (!items.length) throw new Error("Cart empty");
 
-  try {
-    const sale = await prisma.$transaction(async () => {
-      const lines = [];
-      let subtotal = 0;
-      for (const item of items) {
-        const product = await prisma.product.findUnique({ where: { id: item.productId } });
-        if (!product || !product.isSellable) throw new Error("Invalid product");
-        const unitPrice = await getBranchPrice(branchId, product.id, product.listPrice);
-        const qty = Number(item.quantity);
-        const lineTotal = unitPrice * qty;
-        subtotal += lineTotal;
-        await adjustStock(branchId, product.id, -qty);
-        lines.push({
-          productId: product.id,
-          quantity: qty,
-          unitPrice,
-          lineTotal,
-        });
-      }
+  const offlineKey = body.offlineKey ? String(body.offlineKey) : null;
+  if (offlineKey) {
+    const existing = await prisma.sale.findFirst({
+      where: { offlineKey },
+      include: { lines: { include: { product: true } }, customer: true },
+    });
+    if (existing) return existing;
+  }
 
-      const count = await prisma.sale.count();
-      return prisma.sale.create({
-        data: {
-          saleNo: nextDocNo("POS", count + 1),
-          branchId,
-          cashierId: session.id,
-          shiftId: shift.id,
-          tillNo: shift.tillNo,
-          channel: "POS",
-          subtotal,
-          tax: 0,
-          total: subtotal,
-          paymentMethod: body.paymentMethod || "CASH",
-          lines: { create: lines },
-        },
-        include: { lines: { include: { product: true } } },
+  const sale = await prisma.$transaction(async () => {
+    const lines = [];
+    let subtotal = 0;
+    for (const item of items) {
+      const product = await prisma.product.findUnique({ where: { id: item.productId } });
+      if (!product || !product.isSellable) throw new Error("Invalid product");
+      const unitPrice = await getBranchPrice(branchId, product.id, product.listPrice);
+      const qty = Number(item.quantity);
+      const lineTotal = unitPrice * qty;
+      subtotal += lineTotal;
+      await adjustStock(branchId, product.id, -qty);
+      lines.push({
+        productId: product.id,
+        quantity: qty,
+        unitPrice,
+        lineTotal,
       });
-    });
+    }
 
-    await writeAudit({
-      actor: session,
-      action: "SALE_CREATE",
-      entityType: "Sale",
-      entityId: sale.id,
-      branchId,
-      summary: `POS ${sale.saleNo} · ${sale.tillNo} · ${sale.total}`,
-    });
+    let customerId: string | null = null;
+    const phone = body.customerPhone ? String(body.customerPhone).replace(/\s+/g, "") : "";
+    if (phone) {
+      const customer = await upsertCustomerFromOrder({
+        name: String(body.customerName || "POS Guest"),
+        phone,
+        branchId,
+        orderTotal: subtotal,
+      });
+      customerId = customer.id;
+    }
 
-    return NextResponse.json({ sale }, { status: 201 });
-  } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Sale failed" },
-      { status: 400 }
-    );
+    const count = await prisma.sale.count();
+    return prisma.sale.create({
+      data: {
+        saleNo: nextDocNo("POS", count + 1),
+        branchId,
+        cashierId: session.id,
+        shiftId: shift.id,
+        tillNo: shift.tillNo,
+        channel: offlineKey ? "POS_OFFLINE" : "POS",
+        subtotal,
+        tax: 0,
+        total: subtotal,
+        paymentMethod: String(body.paymentMethod || "CASH"),
+        customerId,
+        offlineKey,
+        lines: { create: lines },
+      },
+      include: { lines: { include: { product: true } }, customer: true },
+    });
+  });
+
+  if (sale.customerId) {
+    // loyalty already applied via upsertCustomerFromOrder when phone present
   }
+
+  await writeAudit({
+    actor: session as never,
+    action: "SALE_CREATE",
+    entityType: "Sale",
+    entityId: sale.id,
+    branchId,
+    summary: `POS ${sale.saleNo} · ${sale.tillNo} · ${sale.total}`,
+  });
+
+  return sale;
 }

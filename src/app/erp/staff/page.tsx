@@ -11,7 +11,7 @@ function dayStart(d = new Date()) {
 
 export default async function StaffPage() {
   const user = await requireErpUser();
-  if (!can(user.role as Role, "staff")) redirect("/erp");
+  if (!can(user.role as Role, "attendance") && !can(user.role as Role, "staff")) redirect("/erp");
 
   const { prisma } = await import("@/lib/prisma");
   const { StaffClient } = await import("@/components/StaffClient");

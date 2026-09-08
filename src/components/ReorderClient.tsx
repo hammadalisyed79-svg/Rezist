@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -41,7 +40,27 @@ export function ReorderClient({ suggestions }: { suggestions: Suggestion[] }) {
       setMsg(data.error || "Transfer failed");
       return;
     }
-    setMsg(`Shipped ${data.transfer.transferNo} — receive at branch`);
+    setMsg(`Draft ${data.transfer.transferNo} — ship from Transfers`);
+    router.refresh();
+  }
+
+  async function createPO(s: Suggestion) {
+    const res = await fetch("/api/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "createPO",
+        branchId: s.branchId,
+        productId: s.productId,
+        quantity: s.suggestQty,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setMsg(data.error || "PO failed");
+      return;
+    }
+    setMsg(`Created ${data.purchase.poNo} — receive GRN in Purchases`);
     router.refresh();
   }
 
@@ -75,12 +94,12 @@ export function ReorderClient({ suggestions }: { suggestions: Suggestion[] }) {
                 <td className="row-actions">
                   {s.action === "TRANSFER" && s.fromBranchId ? (
                     <button type="button" className="btn-sm" onClick={() => createTransfer(s)}>
-                      Transfer from {s.fromBranchName}
+                      Draft transfer from {s.fromBranchName}
                     </button>
                   ) : (
-                    <Link className="btn-sm" href="/erp/purchases">
+                    <button type="button" className="btn-sm" onClick={() => createPO(s)}>
                       Create PO
-                    </Link>
+                    </button>
                   )}
                 </td>
               </tr>

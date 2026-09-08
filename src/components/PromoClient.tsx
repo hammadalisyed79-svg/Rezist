@@ -19,11 +19,20 @@ type Promo = {
 
 export function PromoClient({
   promotions,
+  overrides,
   branches,
   products,
   cities,
 }: {
   promotions: Promo[];
+  overrides: {
+    id: string;
+    price: number;
+    branchId: string;
+    productId: string;
+    branch: { name: string };
+    product: { name: string };
+  }[];
   branches: { id: string; name: string; city: string }[];
   products: { id: string; name: string }[];
   cities: string[];
@@ -137,6 +146,106 @@ export function PromoClient({
         </button>
       </form>
       {msg ? <p className="success">{msg}</p> : null}
+
+      <form
+        className="panel form-inline"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          const res = await fetch("/api/promotions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "setPriceOverride",
+              branchId: fd.get("branchId"),
+              productId: fd.get("productId"),
+              price: Number(fd.get("price")),
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            setMsg(data.error || "Override failed");
+            return;
+          }
+          setMsg(`Branch price set for ${data.override.product.name}`);
+          router.refresh();
+        }}
+      >
+        <h2>Branch price override</h2>
+        <label>
+          Branch
+          <select name="branchId" required>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Product
+          <select name="productId" required>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Price (PKR)
+          <input name="price" type="number" step="1" required />
+        </label>
+        <button className="btn" type="submit">
+          Save override
+        </button>
+      </form>
+
+      {overrides.length ? (
+        <section className="panel">
+          <h2>Active overrides</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Branch</th>
+                <th>Product</th>
+                <th>Price</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {overrides.map((o) => (
+                <tr key={o.id}>
+                  <td>{o.branch.name}</td>
+                  <td>{o.product.name}</td>
+                  <td>{o.price}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn-sm"
+                      onClick={async () => {
+                        await fetch("/api/promotions", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            action: "clearPriceOverride",
+                            branchId: o.branchId,
+                            productId: o.productId,
+                          }),
+                        });
+                        router.refresh();
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ) : null}
+
       <section className="panel">
         <table>
           <thead>

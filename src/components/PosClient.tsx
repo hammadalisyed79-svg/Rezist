@@ -8,6 +8,7 @@ type Product = {
   name: string;
   listPrice: number;
   sku: string;
+  barcode?: string | null;
   category?: { name: string } | null;
 };
 type Branch = { id: string; name: string; type: string };
@@ -18,6 +19,59 @@ type Shift = {
   openingCash: number;
   branch: { name: string };
 };
+
+type OfflineSale = {
+  clientKey: string;
+  branchId: string;
+  shiftId: string;
+  paymentMethod: string;
+  customerPhone?: string;
+  customerName?: string;
+  items: { productId: string; quantity: number }[];
+  createdAt: string;
+};
+
+const OFFLINE_KEY = "rezist_pos_offline_queue";
+
+function loadQueue(): OfflineSale[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(OFFLINE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveQueue(q: OfflineSale[]) {
+  localStorage.setItem(OFFLINE_KEY, JSON.stringify(q));
+}
+
+function printReceipt(sale: {
+  saleNo: string;
+  total: number;
+  paymentMethod: string;
+  lines: { product: { name: string }; quantity: number; lineTotal: number }[];
+  customer?: { name: string; phone: string } | null;
+}) {
+  const w = window.open("", "receipt", "width=360,height=640");
+  if (!w) return;
+  w.document.write(`<!doctype html><html><head><title>${sale.saleNo}</title>
+  <style>body{font-family:monospace;padding:12px} h1{font-size:16px} table{width:100%} td{padding:2px 0}</style>
+  </head><body>
+  <h1>Rezist</h1>
+  <p>${sale.saleNo}<br/>${new Date().toLocaleString()}<br/>${sale.paymentMethod}</p>
+  ${sale.customer ? `<p>${sale.customer.name} · ${sale.customer.phone}</p>` : ""}
+  <table>${sale.lines
+    .map(
+      (l) =>
+        `<tr><td>${l.product.name} × ${l.quantity}</td><td style="text-align:right">${l.lineTotal}</td></tr>`
+    )
+    .join("")}</table>
+  <p><strong>Total ${sale.total}</strong></p>
+  <p>Thank you — Ir-Rezistable Delight</p>
+  <script>window.print();</script></body></html>`);
+  w.document.close();
+}
 
 export function PosClient({
   initialBranchId,
@@ -39,6 +93,11 @@ export function PosClient({
   const [recentSales, setRecentSales] = useState<{ id: string; saleNo: string; total: number }[]>([]);
   const [voidPin, setVoidPin] = useState("");
   const [voidSaleId, setVoidSaleId] = useState("");
+  const [barcode, setBarcode] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [offlineCount, setOfflineCount] = useState(0);
+  const [online, setOnline] = useState(true);
 
   async function loadShift(bid: string) {
     const res = await fetch(`/api/shifts?branchId=${bid}`);
@@ -69,6 +128,16 @@ export function PosClient({
     fetch("/api/products?sellable=1")
       .then((r) => r.json())
       .then((d) => setProducts(d.products || []));
+    setOfflineCount(loadQueue().length);
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    setOnline(navigator.onLine);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
   }, []);
 
   useEffect(() => {
@@ -76,6 +145,12 @@ export function PosClient({
     loadShift(branchId);
     loadSales(branchId);
   }, [branchId]);
+
+  useEffect(() => {
+    if (online && offlineCount > 0) {
+      void syncOffline();
+    }
+  }, [online]);
 
   const lines = useMemo(
     () =>
@@ -101,6 +176,29 @@ export function PosClient({
       if (next[id] <= 0) delete next[id];
       return next;
     });
+  }
+
+  async function scanBarcode(e: React.FormEvent) {
+    e.preventDefault();
+    const code = barcode.trim();
+    if (!code) return;
+    const byLocal = products.find((p) => p.sku === code || p.barcode === code);
+    if (byLocal) {
+      add(byLocal.id);
+      setBarcode("");
+      return;
+    }
+    const res = await fetch(`/api/pos?barcode=${encodeURIComponent(code)}`);
+    const data = await res.json();
+    if (data.product) {
+      if (!products.some((p) => p.id === data.product.id)) {
+        setProducts((prev) => [...prev, data.product]);
+      }
+      add(data.product.id);
+      setBarcode("");
+    } else {
+      setMessage(`Barcode not found: ${code}`);
+    }
   }
 
   async function openShift() {
@@ -136,21 +234,58 @@ export function PosClient({
     setMessage("Shift closed");
   }
 
+  async function syncOffline() {
+    const q = loadQueue();
+    if (!q.length) return;
+    const res = await fetch("/api/pos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "syncOffline", sales: q }),
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+    const okKeys = new Set(
+      (data.results || []).filter((r: { ok: boolean }) => r.ok).map((r: { clientKey: string }) => r.clientKey)
+    );
+    const remaining = q.filter((s) => !okKeys.has(s.clientKey));
+    saveQueue(remaining);
+    setOfflineCount(remaining.length);
+    if (okKeys.size) {
+      setMessage(`Synced ${okKeys.size} offline sale(s)`);
+      loadSales(branchId);
+    }
+  }
+
   async function checkout() {
     setMessage("");
     if (!shift) {
       setMessage("Open a till shift first");
       return;
     }
+    const payload = {
+      branchId,
+      shiftId: shift.id,
+      paymentMethod,
+      customerPhone: customerPhone || undefined,
+      customerName: customerName || undefined,
+      items: Object.entries(cart).map(([productId, quantity]) => ({ productId, quantity })),
+    };
+
+    if (!navigator.onLine) {
+      const clientKey = `off-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const q = loadQueue();
+      q.push({ ...payload, clientKey, createdAt: new Date().toISOString() });
+      saveQueue(q);
+      setOfflineCount(q.length);
+      setCart({});
+      setMessage(`Offline sale queued (${q.length} pending sync)`);
+      return;
+    }
+
     const res = await fetch("/api/pos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        branchId,
-        shiftId: shift.id,
-        paymentMethod,
-        items: Object.entries(cart).map(([productId, quantity]) => ({ productId, quantity })),
-      }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -159,7 +294,10 @@ export function PosClient({
     }
     setLastSale(data.sale.saleNo);
     setCart({});
+    setCustomerPhone("");
+    setCustomerName("");
     setMessage(`Sale ${data.sale.saleNo} recorded — ${formatPKR(data.sale.total)}`);
+    printReceipt(data.sale);
     loadSales(branchId);
   }
 
@@ -232,7 +370,27 @@ export function PosClient({
               </button>
             </>
           )}
+          <span className={`badge ${online ? "status-ready" : "status-pending"}`}>
+            {online ? "Online" : "Offline"}
+            {offlineCount ? ` · ${offlineCount} queued` : ""}
+          </span>
+          {offlineCount ? (
+            <button type="button" className="btn-sm" onClick={syncOffline}>
+              Sync offline
+            </button>
+          ) : null}
         </div>
+        <form className="form-inline" onSubmit={scanBarcode}>
+          <input
+            value={barcode}
+            onChange={(e) => setBarcode(e.target.value)}
+            placeholder="Scan barcode / SKU"
+            autoFocus
+          />
+          <button type="submit" className="btn-sm">
+            Add
+          </button>
+        </form>
         {!shift ? (
           <p className="muted">Open a till shift to start selling (multi-till ready).</p>
         ) : null}
@@ -253,7 +411,7 @@ export function PosClient({
       </section>
       <aside className="panel cart-panel">
         <h2>Cart</h2>
-        {lines.length === 0 ? <p className="muted">Tap products to add</p> : null}
+        {lines.length === 0 ? <p className="muted">Tap products or scan barcode</p> : null}
         <ul className="cart-list">
           {lines.map((l) => (
             <li key={l.product.id}>
@@ -275,6 +433,18 @@ export function PosClient({
         </ul>
         <div className="cart-footer">
           <label>
+            Customer phone (loyalty)
+            <input
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              placeholder="03xx…"
+            />
+          </label>
+          <label>
+            Name
+            <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Optional" />
+          </label>
+          <label>
             Payment
             <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
               <option value="CASH">Cash</option>
@@ -287,12 +457,25 @@ export function PosClient({
           <button type="button" className="btn" disabled={!lines.length || !branchId || !shift} onClick={checkout}>
             Complete sale
           </button>
-          {message ? <p className={message.toLowerCase().includes("fail") || message.toLowerCase().includes("invalid") || message.toLowerCase().includes("open") ? "error" : "success"}>{message}</p> : null}
-          {lastSale ? <p className="muted">Last: {lastSale}</p> : null}
+          {message ? (
+            <p
+              className={
+                message.toLowerCase().includes("fail") ||
+                message.toLowerCase().includes("invalid") ||
+                message.toLowerCase().includes("open") ||
+                message.toLowerCase().includes("not found")
+                  ? "error"
+                  : "success"
+              }
+            >
+              {message}
+            </p>
+          ) : null}
+          {lastSale ? <p className="muted">Last: {lastSale} (receipt printed)</p> : null}
         </div>
 
         <div className="pos-void">
-          <h3>Void (manager PIN)</h3>
+          <h3>Void (manager PIN required)</h3>
           <select value={voidSaleId} onChange={(e) => setVoidSaleId(e.target.value)}>
             <option value="">Recent sale…</option>
             {recentSales.map((s) => (

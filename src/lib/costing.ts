@@ -22,7 +22,10 @@ export async function computeRecipeCost(productId: string): Promise<number> {
     where: { productId },
     include: { ingredient: true },
   });
-  return items.reduce((a, r) => a + r.quantity * (r.ingredient.costPrice || 0), 0);
+  return items.reduce((a, r) => {
+    const yieldFactor = r.yieldFactor > 0 ? r.yieldFactor : 1;
+    return a + (r.quantity / yieldFactor) * (r.ingredient.costPrice || 0);
+  }, 0);
 }
 
 export async function getProductCosting(productIds?: string[]): Promise<CostRow[]> {
@@ -39,12 +42,16 @@ export async function getProductCosting(productIds?: string[]): Promise<CostRow[
   });
 
   return products.map((p) => {
-    const ingredients = p.recipeItems.map((r) => ({
-      name: r.ingredient.name,
-      qty: r.quantity,
-      unitCost: r.ingredient.costPrice || 0,
-      lineCost: r.quantity * (r.ingredient.costPrice || 0),
-    }));
+    const ingredients = p.recipeItems.map((r) => {
+      const yieldFactor = r.yieldFactor > 0 ? r.yieldFactor : 1;
+      const effectiveQty = r.quantity / yieldFactor;
+      return {
+        name: r.ingredient.name,
+        qty: effectiveQty,
+        unitCost: r.ingredient.costPrice || 0,
+        lineCost: effectiveQty * (r.ingredient.costPrice || 0),
+      };
+    });
     const recipeCost = ingredients.reduce((a, i) => a + i.lineCost, 0);
     const missingRecipe = !ingredients.length;
     const effectiveCost = recipeCost > 0 ? recipeCost : p.costPrice || 0;

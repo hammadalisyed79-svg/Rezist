@@ -9,7 +9,7 @@ export default async function PromotionsPage() {
   const user = await requireErpUser();
   if (!can(user.role as Role, "promotions")) redirect("/erp");
 
-  const [promotions, branches, products] = await Promise.all([
+  const [promotions, branches, products, overrides] = await Promise.all([
     prisma.promotion.findMany({
       include: { branch: true, items: { include: { product: true } } },
       orderBy: { createdAt: "desc" },
@@ -19,6 +19,10 @@ export default async function PromotionsPage() {
     prisma.product.findMany({
       where: { active: true, isSellable: true, type: "FINISHED" },
       orderBy: { name: "asc" },
+    }),
+    prisma.priceOverride.findMany({
+      include: { product: true, branch: true },
+      take: 100,
     }),
   ]);
   const cities = [...new Set(branches.map((b) => b.city))];
@@ -34,6 +38,7 @@ export default async function PromotionsPage() {
       </header>
       <PromoClient
         promotions={promotions}
+        overrides={overrides}
         branches={branches}
         products={products}
         cities={cities}

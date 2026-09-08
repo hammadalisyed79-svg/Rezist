@@ -65,6 +65,7 @@ model Branch {
   attendance     Attendance[]
   promotions     Promotion[]
   customers      Customer[]
+  riders         DeliveryRider[]
 }
 
 model Category {
@@ -91,6 +92,7 @@ model Product {
   isSellable  Boolean   @default(true)
   isPublic    Boolean   @default(true)
   allergens   String?
+  barcode     String?
   active      Boolean   @default(true)
   imageUrl    String?
   createdAt   DateTime  @default(now())
@@ -108,6 +110,8 @@ model Product {
   onlineLines     OnlineOrderLine[]
   purchaseLines   PurchaseOrderLine[]
   promotionItems  PromotionItem[]
+
+  @@index([barcode])
 }
 
 model RecipeItem {
@@ -277,6 +281,7 @@ model Sale {
   paymentMethod String    @default("CASH")
   voided        Boolean   @default(false)
   voidReason    String?
+  offlineKey    String?   @unique
   createdAt     DateTime  @default(now())
   lines         SaleLine[]
   onlineOrder   OnlineOrder?
@@ -366,6 +371,13 @@ model OnlineOrder {
   subtotal      Float
   total         Float
   notes         String?
+  externalChannel String @default("WEB") // WEB | FOODPANDA | CAREEM | MANUAL
+  externalRef   String?
+  riderId       String?
+  rider         DeliveryRider? @relation(fields: [riderId], references: [id])
+  deliveryStatus String? // ASSIGNED | OUT_FOR_DELIVERY | DELIVERED | FAILED
+  dispatchedAt  DateTime?
+  deliveredAt   DateTime?
   saleId        String?  @unique
   sale          Sale?    @relation(fields: [saleId], references: [id])
   createdAt     DateTime @default(now())
@@ -373,6 +385,8 @@ model OnlineOrder {
   lines         OnlineOrderLine[]
   customerId    String?
   customer      Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([externalChannel, externalRef])
 }
 
 model OnlineOrderLine {
@@ -474,5 +488,29 @@ model Attendance {
   createdAt  DateTime @default(now())
 
   @@unique([userId, workDate])
+}
+
+model DeliveryRider {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  vehicle   String?
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    OnlineOrder[]
+}
+
+model MobileApiToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  label     String
+  role      String   @default("BRANCH_MANAGER")
+  branchId  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
 }
 
