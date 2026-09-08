@@ -178,7 +178,12 @@ textarea {
   gap: 0.75rem;
   padding: 1.25rem 6vw;
   border-block: 1px solid var(--line);
-  background: linear-gradient(90deg, rgba(255, 215, 0, 0.06), rgba(248, 246, 240, 0.04), rgba(255, 215, 0, 0.06));
+  background: linear-gradient(
+    90deg,
+    rgba(212, 175, 55, 0.08),
+    rgba(248, 246, 240, 0.04),
+    rgba(212, 175, 55, 0.08)
+  );
 }
 
 .trust-bar div {
@@ -188,7 +193,11 @@ textarea {
 }
 
 .trust-bar strong {
-  color: var(--accent);
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
   font-size: 0.95rem;
 }
 
@@ -895,7 +904,11 @@ textarea {
   margin-top: 0.35rem;
   font-size: 1.4rem;
   font-family: var(--font-display), serif;
-  color: var(--gold);
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .erp-main .panel {
@@ -908,7 +921,11 @@ textarea {
 .erp-main .panel h2 {
   margin-top: 0;
   font-family: var(--font-display), serif;
-  color: var(--gold);
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .erp-main table {
