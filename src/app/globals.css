@@ -319,17 +319,13 @@ textarea {
   gap: 1rem;
 }
 
-@media (max-width: 960px) {
-  .trust-bar,
-  .menu-shop-layout,
-  .contact-grid {
-    grid-template-columns: 1fr;
-  }
+.brand-gallery.dense {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 
-  .menu-cats {
-    position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
+@media (max-width: 960px) {
+  .brand-gallery.dense {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

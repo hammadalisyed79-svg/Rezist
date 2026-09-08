@@ -42,8 +42,8 @@ export default async function HomePage() {
           <p className="tagline-line">{brand.tagline}</p>
           <h1>{brand.slogan}</h1>
           <p className="lede">
-            Order like Pakistan&apos;s top dessert chains — pick pickup or delivery, choose your
-            branch, then shop cakes, brownies, cupcakes and more.
+            {brand.bio} Order online like Layers — pick city & branch, then shop cakes, brownies,
+            cupcakes and more.
           </p>
           <HomeOrderStart branches={branches} cities={cities} />
         </div>
@@ -111,10 +111,36 @@ export default async function HomePage() {
         </Link>
       </section>
 
+      <section className="section gallery-section">
+        <div className="section-head">
+          <p className="eyebrow">@{brand.instagram}</p>
+          <h2>From our dessert lounge</h2>
+          <p>
+            {brand.followersLabel} · {brand.cities.join(" · ")}
+          </p>
+        </div>
+        <div className="brand-gallery dense">
+          {brand.gallery.slice(0, 6).map((src, i) => (
+            <div key={src} className="gallery-frame">
+              <Image src={src} alt={`Rezist Instagram ${i + 1}`} fill sizes="33vw" />
+            </div>
+          ))}
+        </div>
+        <div className="hero-cta" style={{ marginTop: "1rem" }}>
+          <a className="btn" href={brand.instagramUrl} target="_blank" rel="noreferrer">
+            Follow Instagram
+          </a>
+          <a className="btn-ghost" href={brand.mapsUrl} target="_blank" rel="noreferrer">
+            Open Google Maps
+          </a>
+        </div>
+      </section>
+
       <section className="section muted-section">
         <div className="section-head">
           <p className="eyebrow">Branches</p>
           <h2>Choose your nearest branch</h2>
+          <p>{brand.bio}</p>
         </div>
         <div className="branch-grid">
           {branches.map((b) => (

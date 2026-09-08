@@ -8,12 +8,14 @@ export function TrustBar() {
         <span>on orders above Rs. {brand.freeDeliveryMin.toLocaleString("en-PK")}</span>
       </div>
       <div>
-        <strong>Secure checkout</strong>
-        <span>Cash, card & wallets</span>
+        <strong>Dessert lounge</strong>
+        <span>{brand.cities.length} cities & growing</span>
       </div>
       <div>
-        <strong>Neighborhood bakers</strong>
-        <span>Branches across Punjab</span>
+        <strong>{brand.followersLabel}</strong>
+        <a href={brand.instagramUrl} target="_blank" rel="noreferrer">
+          @{brand.instagram}
+        </a>
       </div>
       <div>
         <strong>Call now</strong>

@@ -16,9 +16,9 @@ const body = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "Rezist! IF YOU CAN — Order Online",
+  title: "Rezist! — A Dessert Lounge | Order Online",
   description:
-    "An Ir-Rezistable Delight. Order cakes, brownies, cupcakes and desserts online for pickup or delivery across Pakistan.",
+    "An Ir-Rezistable Dessert Lounge in Gujrat, Kharian, Jhelum, Sargodha, Daska, Mirpur & Lala Musa. Order cakes and desserts online.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

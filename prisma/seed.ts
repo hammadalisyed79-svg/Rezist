@@ -45,27 +45,66 @@ async function main() {
     },
   });
 
-  const gujrat = await prisma.branch.create({
-    data: {
+  const retailSpecs = [
+    {
       code: "GUJ-01",
       name: "Rezist Gujrat",
       city: "Gujrat",
       address: "Rehman Shaheed Road, Gujrat, 50700",
-      phone: "+92 331 4213137",
-      type: BranchType.RETAIL,
     },
-  });
-
-  const jhelum = await prisma.branch.create({
-    data: {
+    {
+      code: "KHR-01",
+      name: "Rezist Kharian",
+      city: "Kharian",
+      address: "Kharian City",
+    },
+    {
       code: "JHL-01",
       name: "Rezist Jhelum Cantt",
       city: "Jhelum",
       address: "Jhelum Cantonment",
-      phone: "+92 331 4213137",
-      type: BranchType.RETAIL,
     },
-  });
+    {
+      code: "SGD-01",
+      name: "Rezist Sargodha",
+      city: "Sargodha",
+      address: "Sargodha City",
+    },
+    {
+      code: "DSK-01",
+      name: "Rezist Daska",
+      city: "Daska",
+      address: "Daska City",
+    },
+    {
+      code: "MRP-01",
+      name: "Rezist Mirpur",
+      city: "Mirpur",
+      address: "Mirpur Azad Kashmir",
+    },
+    {
+      code: "LLM-01",
+      name: "Rezist Lala Musa",
+      city: "Lala Musa",
+      address: "Moh. Qaziyan Road, Main GT Road, Lala Musa",
+    },
+  ];
+
+  const retailBranches = [];
+  for (const spec of retailSpecs) {
+    retailBranches.push(
+      await prisma.branch.create({
+        data: {
+          ...spec,
+          phone: "+92 331 4213137",
+          type: BranchType.RETAIL,
+        },
+      })
+    );
+  }
+
+  const gujrat = retailBranches[0];
+  const jhelum = retailBranches[2];
 
   const passwordHash = await bcrypt.hash("rezist123", 10);
 
@@ -334,7 +373,7 @@ async function main() {
     }
   }
 
-  for (const branch of [gujrat, jhelum]) {
+  for (const branch of retailBranches) {
     for (const p of finished) {
       await prisma.inventoryItem.create({
         data: {
@@ -349,7 +388,12 @@ async function main() {
 
   console.log("Seeded Rezist ERP:");
   console.log("  admin@rezist.pk / rezist123");
-  console.log("  Branches:", kitchen.code, warehouse.code, gujrat.code, jhelum.code);
+  console.log(
+    "  Branches:",
+    kitchen.code,
+    warehouse.code,
+    ...retailBranches.map((b) => b.code)
+  );
 }
 
 main()
