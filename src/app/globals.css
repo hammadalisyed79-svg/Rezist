@@ -2755,3 +2755,222 @@ textarea {
     transform: none;
   }
 }
+
+/* ??? Professional checkout + customer invoice slip ??? */
+.lz-checkout-done {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 720px;
+  margin: 0 auto 2rem;
+}
+
+.lz-checkout-steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.lz-checkout-steps button {
+  border: 1px solid var(--line);
+  background: var(--pearl-soft);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.45rem 0.7rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lz-checkout-steps button.active {
+  background: var(--brown);
+  color: var(--pearl-soft);
+  border-color: var(--brown);
+}
+
+.lz-checkout-summary {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.lz-checkout-summary > div,
+.lz-checkout-grand {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.lz-checkout-grand {
+  font-size: 1.1rem;
+  color: var(--brown);
+}
+
+.lz-checkout-mini {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+}
+
+.order-cart textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 64px;
+  font: inherit;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--pearl-soft);
+}
+
+.inv-slip {
+  background: var(--pearl-soft);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 1.25rem 1.35rem 1.5rem;
+  box-shadow: 0 12px 40px rgba(20, 12, 8, 0.06);
+  animation: rise 0.4s ease;
+}
+
+.inv-slip-brand {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--brown);
+}
+
+.inv-slip-brand img {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.inv-slip-brand h2 {
+  margin: 0.1rem 0;
+  font-family: var(--font-display), Georgia, serif;
+  color: var(--brown);
+}
+
+.inv-eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+  font-weight: 700;
+}
+
+.inv-slip-head {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1rem 0;
+}
+
+@media (min-width: 640px) {
+  .inv-slip-head {
+    grid-template-columns: 1fr 1.2fr;
+  }
+}
+
+.inv-docno {
+  font-size: 1.15rem;
+}
+
+.inv-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.1rem;
+}
+
+.inv-slip-party p {
+  margin: 0 0 0.45rem;
+}
+
+.inv-slip-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.inv-slip-table th {
+  text-align: left;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--brown);
+  padding: 0.4rem 0.25rem;
+}
+
+.inv-slip-table th:nth-child(n + 2),
+.inv-slip-table td:nth-child(n + 2) {
+  text-align: right;
+}
+
+.inv-slip-table td {
+  padding: 0.55rem 0.25rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.inv-slip-totals {
+  margin: 1rem 0 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.inv-slip-totals > div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.inv-slip-totals dt,
+.inv-slip-totals dd {
+  margin: 0;
+}
+
+.inv-grand {
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 2px solid var(--brown);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--brown);
+}
+
+.inv-slip-foot {
+  margin-top: 1.25rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--line);
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.inv-slip-actions {
+  margin-top: 1rem;
+  justify-content: center;
+}
+
+@media print {
+  .erp-shell,
+  .site-header,
+  .lz-mobile-dock,
+  .lz-order-fab,
+  .inv-slip-actions,
+  .lz-success .hero-cta {
+    display: none !important;
+  }
+
+  .inv-slip {
+    box-shadow: none;
+    border: none;
+  }
+}

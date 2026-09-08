@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { formatPKR } from "@/lib/utils";
+import { openInvoicePrint, saleToInvoice } from "@/lib/invoice";
 
 type Product = {
   id: string;
@@ -11,7 +12,14 @@ type Product = {
   barcode?: string | null;
   category?: { name: string } | null;
 };
-type Branch = { id: string; name: string; type: string };
+type Branch = {
+  id: string;
+  name: string;
+  type: string;
+  city?: string;
+  address?: string;
+  phone?: string | null;
+};
 type Shift = {
   id: string;
   tillNo: string;
@@ -46,33 +54,6 @@ function saveQueue(q: OfflineSale[]) {
   localStorage.setItem(OFFLINE_KEY, JSON.stringify(q));
 }
 
-function printReceipt(sale: {
-  saleNo: string;
-  total: number;
-  paymentMethod: string;
-  lines: { product: { name: string }; quantity: number; lineTotal: number }[];
-  customer?: { name: string; phone: string } | null;
-}) {
-  const w = window.open("", "receipt", "width=360,height=640");
-  if (!w) return;
-  w.document.write(`<!doctype html><html><head><title>${sale.saleNo}</title>
-  <style>body{font-family:monospace;padding:12px} h1{font-size:16px} table{width:100%} td{padding:2px 0}</style>
-  </head><body>
-  <h1>Rezist</h1>
-  <p>${sale.saleNo}<br/>${new Date().toLocaleString()}<br/>${sale.paymentMethod}</p>
-  ${sale.customer ? `<p>${sale.customer.name} · ${sale.customer.phone}</p>` : ""}
-  <table>${sale.lines
-    .map(
-      (l) =>
-        `<tr><td>${l.product.name} × ${l.quantity}</td><td style="text-align:right">${l.lineTotal}</td></tr>`
-    )
-    .join("")}</table>
-  <p><strong>Total ${sale.total}</strong></p>
-  <p>Thank you — Ir-Rezistable Delight</p>
-  <script>window.print();</script></body></html>`);
-  w.document.close();
-}
-
 export function PosClient({
   initialBranchId,
   role,
@@ -90,7 +71,14 @@ export function PosClient({
   const [shift, setShift] = useState<Shift | null>(null);
   const [tillNo, setTillNo] = useState("TILL-1");
   const [openingCash, setOpeningCash] = useState(2000);
-  const [recentSales, setRecentSales] = useState<{ id: string; saleNo: string; total: number }[]>([]);
+  const [recentSales, setRecentSales] = useState<
+    {
+      id: string;
+      saleNo: string;
+      total: number;
+      raw?: Parameters<typeof saleToInvoice>[0];
+    }[]
+  >([]);
   const [voidPin, setVoidPin] = useState("");
   const [voidSaleId, setVoidSaleId] = useState("");
   const [barcode, setBarcode] = useState("");
@@ -109,11 +97,14 @@ export function PosClient({
     const res = await fetch(`/api/pos?branchId=${bid}`);
     const data = await res.json();
     setRecentSales(
-      (data.sales || []).slice(0, 8).map((s: { id: string; saleNo: string; total: number }) => ({
-        id: s.id,
-        saleNo: s.saleNo,
-        total: s.total,
-      }))
+      (data.sales || []).slice(0, 8).map(
+        (s: Parameters<typeof saleToInvoice>[0] & { id: string; saleNo: string; total: number }) => ({
+          id: s.id,
+          saleNo: s.saleNo,
+          total: s.total,
+          raw: s,
+        })
+      )
     );
   }
 
@@ -297,7 +288,14 @@ export function PosClient({
     setCustomerPhone("");
     setCustomerName("");
     setMessage(`Sale ${data.sale.saleNo} recorded — ${formatPKR(data.sale.total)}`);
-    printReceipt(data.sale);
+    const branch = branches.find((b) => b.id === branchId);
+    openInvoicePrint(
+      saleToInvoice({
+        ...data.sale,
+        branch: data.sale.branch || branch || { name: shift?.branch?.name || "Rezist" },
+        cashier: data.sale.cashier || { name: "Cashier" },
+      })
+    );
     loadSales(branchId);
   }
 
@@ -475,7 +473,7 @@ export function PosClient({
         </div>
 
         <div className="pos-void">
-          <h3>Void (manager PIN required)</h3>
+          <h3>Void / reprint (manager PIN for void)</h3>
           <select value={voidSaleId} onChange={(e) => setVoidSaleId(e.target.value)}>
             <option value="">Recent sale…</option>
             {recentSales.map((s) => (
@@ -490,9 +488,22 @@ export function PosClient({
             value={voidPin}
             onChange={(e) => setVoidPin(e.target.value)}
           />
-          <button type="button" className="btn-sm" onClick={voidSale}>
-            Void sale
-          </button>
+          <div className="row-actions">
+            <button
+              type="button"
+              className="btn-sm"
+              onClick={() => {
+                const s = recentSales.find((x) => x.id === voidSaleId);
+                if (s?.raw) openInvoicePrint(saleToInvoice(s.raw));
+                else setMessage("Select a sale to reprint");
+              }}
+            >
+              Reprint slip
+            </button>
+            <button type="button" className="btn-sm" onClick={voidSale}>
+              Void sale
+            </button>
+          </div>
         </div>
       </aside>
     </div>

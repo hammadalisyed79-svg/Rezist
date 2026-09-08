@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ORDER_FLOW } from "@/lib/permissions";
+import { openInvoicePrint, orderToInvoice } from "@/lib/invoice";
 
 type Order = {
   id: string;
@@ -10,12 +11,21 @@ type Order = {
   status: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string | null;
   fulfillment: string;
+  total: number;
+  subtotal: number;
   totalLabel: string;
   createdLabel: string;
   address?: string | null;
-  branch: { name: string };
-  lines: { quantity: number; product: { name: string } }[];
+  notes?: string | null;
+  branch: { name: string; city?: string; address?: string; phone?: string | null };
+  lines: {
+    quantity: number;
+    unitPrice: number;
+    lineTotal: number;
+    product: { name: string; sku?: string };
+  }[];
 };
 
 const COLUMNS = [
@@ -85,6 +95,26 @@ export function OrdersClient({ orders }: { orders: Order[] }) {
     }
   }
 
+  function printSlip(o: Order) {
+    openInvoicePrint(
+      orderToInvoice({
+        orderNo: o.orderNo,
+        total: o.total,
+        subtotal: o.subtotal,
+        fulfillment: o.fulfillment,
+        address: o.address,
+        status: o.status,
+        notes: o.notes,
+        createdAt: o.createdLabel,
+        customerName: o.customerName,
+        customerPhone: o.customerPhone,
+        customerEmail: o.customerEmail,
+        branch: o.branch,
+        lines: o.lines,
+      })
+    );
+  }
+
   return (
     <>
       {msg ? <p className="success">{msg}</p> : null}
@@ -120,6 +150,9 @@ export function OrdersClient({ orders }: { orders: Order[] }) {
                     </ul>
                     <p className="kitchen-total">{o.totalLabel}</p>
                     <div className="row-actions">
+                      <button type="button" className="btn-sm" onClick={() => printSlip(o)}>
+                        Print slip
+                      </button>
                       {primary ? (
                         <button
                           type="button"

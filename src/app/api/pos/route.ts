@@ -248,7 +248,7 @@ async function createSale(
         offlineKey,
         lines: { create: lines },
       },
-      include: { lines: { include: { product: true } }, customer: true },
+      include: { lines: { include: { product: true } }, customer: true, branch: true, cashier: true },
     });
   });
 

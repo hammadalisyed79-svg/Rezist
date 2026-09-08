@@ -6,8 +6,10 @@ import { formatPKR } from "@/lib/utils";
 import { brand } from "@/lib/brand";
 import { useCart } from "@/components/CartProvider";
 import { ProductCard } from "@/components/ProductCard";
+import { CustomerInvoice } from "@/components/CustomerInvoice";
+import { orderToInvoice, type InvoiceDoc } from "@/lib/invoice";
 
-type Branch = { id: string; name: string; city: string };
+type Branch = { id: string; name: string; city: string; address?: string; phone?: string | null };
 type Product = {
   id: string;
   sku?: string;
@@ -18,6 +20,8 @@ type Product = {
   allergens?: string | null;
   category?: { name: string } | null;
 };
+
+const LAST_ORDER_KEY = "rezist_last_order_invoice";
 
 export function OrderClient({
   branches,
@@ -32,11 +36,14 @@ export function OrderClient({
     useCart();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
   const [msg, setMsg] = useState("");
-  const [orderNo, setOrderNo] = useState("");
+  const [invoice, setInvoice] = useState<InvoiceDoc | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showCart, setShowCart] = useState(false);
+  const [step, setStep] = useState<"cart" | "details">("cart");
 
   useEffect(() => {
     if (!branchId && initialBranchId) setBranchId(initialBranchId);
@@ -47,6 +54,15 @@ export function OrderClient({
       if (cart[p.id]) rememberPrice(p.id, p.listPrice);
     }
   }, [products, cart, rememberPrice]);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(LAST_ORDER_KEY);
+      if (raw) setInvoice(JSON.parse(raw) as InvoiceDoc);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const cities = useMemo(() => [...new Set(branches.map((b) => b.city))], [branches]);
   const selectedBranch = branches.find((b) => b.id === branchId) || branches[0];
@@ -76,6 +92,16 @@ export function OrderClient({
   async function placeOrder(e: React.FormEvent) {
     e.preventDefault();
     setMsg("");
+    if (!name.trim() || !phone.trim()) {
+      setMsg("Name and phone are required");
+      setStep("details");
+      return;
+    }
+    if (fulfillment === "DELIVERY" && !address.trim()) {
+      setMsg("Delivery address is required");
+      setStep("details");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch("/api/orders", {
@@ -83,10 +109,12 @@ export function OrderClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           branchId: branchId || selectedBranch?.id,
-          customerName: name,
-          customerPhone: phone,
+          customerName: name.trim(),
+          customerPhone: phone.trim(),
+          customerEmail: email.trim() || null,
           fulfillment,
-          address: fulfillment === "DELIVERY" ? address : null,
+          address: fulfillment === "DELIVERY" ? address.trim() : null,
+          notes: notes.trim() || null,
           items: Object.entries(cart).map(([productId, quantity]) => ({ productId, quantity })),
         }),
       });
@@ -95,52 +123,60 @@ export function OrderClient({
         setMsg(data.error || "Order failed");
         return;
       }
-      setOrderNo(data.order.orderNo);
+      const doc = orderToInvoice(data.order);
+      setInvoice(doc);
+      try {
+        sessionStorage.setItem(LAST_ORDER_KEY, JSON.stringify(doc));
+      } catch {
+        /* ignore */
+      }
       clear();
       setShowCart(false);
+      setStep("cart");
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (orderNo) {
+  if (invoice) {
     const waText = encodeURIComponent(
-      `Hi Rezist, I placed order ${orderNo}${selectedBranch ? ` for ${selectedBranch.name}` : ""}.`
+      `Hi Rezist, I placed order ${invoice.docNo}${invoice.branchName ? ` for ${invoice.branchName}` : ""}. Total ${formatPKR(invoice.total)}.`
     );
     const waHref = `https://wa.me/923314213137?text=${waText}`;
     return (
-      <div className="lz-success" role="status">
-        <p className="eyebrow">Order received</p>
-        <h2>Thank you — {orderNo}</h2>
-        <p>
-          Your {fulfillment === "DELIVERY" ? "delivery" : "pickup"} request
-          {selectedBranch ? ` at ${selectedBranch.name}` : ""} is with the kitchen. Keep your phone
-          nearby for confirmation.
-        </p>
-        <ul className="lz-success-meta">
-          <li>
-            <strong>Mode</strong> {fulfillment === "DELIVERY" ? "Delivery" : "Pickup"}
-          </li>
-          {selectedBranch ? (
-            <li>
-              <strong>Lounge</strong> {selectedBranch.name}
-            </li>
-          ) : null}
-          <li>
-            <strong>Next</strong> Branch confirms shortly
-          </li>
-        </ul>
-        <div className="hero-cta">
-          <Link className="btn" href="/menu">
-            Order more
-          </Link>
-          <a className="btn-ghost" href={waHref} target="_blank" rel="noreferrer">
-            WhatsApp us
-          </a>
-          <a className="text-link" href={brand.phoneHref}>
-            Call {brand.phone}
-          </a>
+      <div className="lz-checkout-done">
+        <div className="lz-success" role="status">
+          <p className="eyebrow">Order confirmed</p>
+          <h2>Thank you — {invoice.docNo}</h2>
+          <p>
+            Your {invoice.fulfillment === "DELIVERY" ? "delivery" : "pickup"} request at{" "}
+            {invoice.branchName} is with the kitchen. Your customer slip is below — print or save it.
+          </p>
         </div>
+        <CustomerInvoice
+          doc={invoice}
+          actions={
+            <>
+              <a className="btn-ghost" href={waHref} target="_blank" rel="noreferrer">
+                WhatsApp branch
+              </a>
+              <Link
+                className="text-link"
+                href="/menu"
+                onClick={() => {
+                  setInvoice(null);
+                  try {
+                    sessionStorage.removeItem(LAST_ORDER_KEY);
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+              >
+                Order more
+              </Link>
+            </>
+          }
+        />
       </div>
     );
   }
@@ -158,7 +194,7 @@ export function OrderClient({
   const cartForm = (
     <form className="order-cart lz-cart-sticky" onSubmit={placeOrder}>
       <div className="lz-cart-top">
-        <h2>Cart</h2>
+        <h2>Checkout</h2>
         <button type="button" className="lz-cart-close" onClick={() => setShowCart(false)}>
           Close
         </button>
@@ -167,68 +203,144 @@ export function OrderClient({
         emptyCart
       ) : (
         <>
-          <ul>
-            {lines.map((l) => (
-              <li key={l.product.id}>
-                <span>
-                  {l.product.name}
-                  <div className="qty">
-                    <button
-                      type="button"
-                      aria-label={`Decrease ${l.product.name}`}
-                      onClick={() => setQty(l.product.id, l.qty - 1, l.product.listPrice)}
-                    >
-                      −
-                    </button>
-                    <span>{l.qty}</span>
-                    <button
-                      type="button"
-                      aria-label={`Increase ${l.product.name}`}
-                      onClick={() => setQty(l.product.id, l.qty + 1, l.product.listPrice)}
-                    >
-                      +
-                    </button>
-                  </div>
-                </span>
-                <span>{formatPKR(l.total)}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="total">{formatPKR(total)}</p>
-          {deliveryNote ? <p className="muted">{deliveryNote}</p> : null}
-          <label>
-            Name
-            <input value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
-          </label>
-          <label>
-            Phone
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              autoComplete="tel"
-              inputMode="tel"
-            />
-          </label>
-          {fulfillment === "DELIVERY" ? (
-            <label>
-              Delivery address
-              <input
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                required
-                autoComplete="street-address"
-              />
-            </label>
-          ) : null}
-          <button
-            className="btn"
-            type="submit"
-            disabled={!lines.length || !(branchId || selectedBranch) || submitting}
-          >
-            {submitting ? "Placing…" : "Place order"}
-          </button>
-          {msg ? <p className="error">{msg}</p> : null}
+          <div className="lz-checkout-steps" role="tablist" aria-label="Checkout steps">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={step === "cart"}
+              className={step === "cart" ? "active" : undefined}
+              onClick={() => setStep("cart")}
+            >
+              1. Items
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={step === "details"}
+              className={step === "details" ? "active" : undefined}
+              onClick={() => setStep("details")}
+            >
+              2. Details
+            </button>
+          </div>
+
+          {step === "cart" ? (
+            <>
+              <ul>
+                {lines.map((l) => (
+                  <li key={l.product.id}>
+                    <span>
+                      {l.product.name}
+                      <div className="qty">
+                        <button
+                          type="button"
+                          aria-label={`Decrease ${l.product.name}`}
+                          onClick={() => setQty(l.product.id, l.qty - 1, l.product.listPrice)}
+                        >
+                          −
+                        </button>
+                        <span>{l.qty}</span>
+                        <button
+                          type="button"
+                          aria-label={`Increase ${l.product.name}`}
+                          onClick={() => setQty(l.product.id, l.qty + 1, l.product.listPrice)}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </span>
+                    <span>{formatPKR(l.total)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="lz-checkout-summary">
+                <div>
+                  <span>Subtotal</span>
+                  <strong>{formatPKR(total)}</strong>
+                </div>
+                <div>
+                  <span>Tax / GST</span>
+                  <strong>{formatPKR(0)}</strong>
+                </div>
+                <div className="lz-checkout-grand">
+                  <span>Total</span>
+                  <strong>{formatPKR(total)}</strong>
+                </div>
+              </div>
+              {deliveryNote ? <p className="muted">{deliveryNote}</p> : null}
+              <button type="button" className="btn" onClick={() => setStep("details")}>
+                Continue to details
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="muted lz-checkout-mini">
+                {itemCount} item{itemCount === 1 ? "" : "s"} · {formatPKR(total)} ·{" "}
+                {fulfillment === "DELIVERY" ? "Delivery" : "Pickup"} · {selectedBranch?.name}
+              </p>
+              <label>
+                Full name
+                <input value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
+              </label>
+              <label>
+                Phone
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  autoComplete="tel"
+                  inputMode="tel"
+                  placeholder="03xx…"
+                />
+              </label>
+              <label>
+                Email <span className="muted">(optional · for slip)</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </label>
+              {fulfillment === "DELIVERY" ? (
+                <label>
+                  Delivery address
+                  <textarea
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    required
+                    rows={2}
+                    autoComplete="street-address"
+                  />
+                </label>
+              ) : null}
+              <label>
+                Order notes <span className="muted">(optional)</span>
+                <input
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Candles, message on cake…"
+                />
+              </label>
+              <p className="muted" style={{ fontSize: "0.85rem" }}>
+                You will receive a professional order slip after placing. Payment: pay at counter /
+                COD on delivery.
+              </p>
+              <div className="hero-cta" style={{ marginTop: "0.5rem" }}>
+                <button type="button" className="btn-ghost" onClick={() => setStep("cart")}>
+                  Back
+                </button>
+                <button
+                  className="btn"
+                  type="submit"
+                  disabled={!lines.length || !(branchId || selectedBranch) || submitting}
+                >
+                  {submitting ? "Placing…" : `Place order · ${formatPKR(total)}`}
+                </button>
+              </div>
+              {msg ? <p className="error">{msg}</p> : null}
+            </>
+          )}
         </>
       )}
     </form>

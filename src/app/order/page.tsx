@@ -35,7 +35,9 @@ export default async function OrderPage({
           <div>
             <p className="eyebrow">Checkout</p>
             <h1>Your order</h1>
-            <p className="muted">Confirm branch, pickup or delivery, then place your order.</p>
+            <p className="muted">
+              Confirm lounge, pickup or delivery, place order, then print your customer slip.
+            </p>
           </div>
         </div>
         <CategoryRail
