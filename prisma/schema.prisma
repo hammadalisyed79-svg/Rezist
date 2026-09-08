@@ -1,0 +1,269 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("CASHIER")
+  branchId     String?
+  branch       Branch?  @relation(fields: [branchId], references: [id])
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sales        Sale[]
+  dayCloses    DayClose[]
+  productions  ProductionBatch[]
+  wastage      WastageRecord[]
+  transfersOut StockTransfer[] @relation("TransferCreatedBy")
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  city      String
+  address   String
+  phone     String?
+  type      String   @default("RETAIL")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          User[]
+  inventory      InventoryItem[]
+  priceOverrides PriceOverride[]
+  sales          Sale[]
+  dayCloses      DayClose[]
+  transfersFrom  StockTransfer[] @relation("TransferFrom")
+  transfersTo    StockTransfer[] @relation("TransferTo")
+  productions    ProductionBatch[]
+  wastage        WastageRecord[]
+  onlineOrders   OnlineOrder[]
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  sortOrder   Int       @default(0)
+  products    Product[]
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  sku         String    @unique
+  name        String
+  description String?
+  type        String    @default("FINISHED")
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  uom         String    @default("pcs")
+  listPrice   Float     @default(0)
+  costPrice   Float     @default(0)
+  trackStock  Boolean   @default(true)
+  isSellable  Boolean   @default(true)
+  isPublic    Boolean   @default(true)
+  allergens   String?
+  active      Boolean   @default(true)
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  recipeItems     RecipeItem[]        @relation("ParentProduct")
+  usedInRecipes   RecipeItem[]        @relation("IngredientProduct")
+  inventory       InventoryItem[]
+  priceOverrides  PriceOverride[]
+  saleLines       SaleLine[]
+  transferLines   StockTransferLine[]
+  productionLines ProductionLine[]
+  wastage         WastageRecord[]
+  onlineLines     OnlineOrderLine[]
+}
+
+model RecipeItem {
+  id           String  @id @default(cuid())
+  productId    String
+  product      Product @relation("ParentProduct", fields: [productId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Product @relation("IngredientProduct", fields: [ingredientId], references: [id])
+  quantity     Float
+  yieldFactor  Float   @default(1)
+
+  @@unique([productId, ingredientId])
+}
+
+model InventoryItem {
+  id           String   @id @default(cuid())
+  branchId     String
+  branch       Branch   @relation(fields: [branchId], references: [id])
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id])
+  quantity     Float    @default(0)
+  reorderLevel Float    @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([branchId, productId])
+}
+
+model PriceOverride {
+  id        String  @id @default(cuid())
+  branchId  String
+  branch    Branch  @relation(fields: [branchId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  price     Float
+
+  @@unique([branchId, productId])
+}
+
+model StockTransfer {
+  id           String    @id @default(cuid())
+  transferNo   String    @unique
+  fromBranchId String
+  fromBranch   Branch    @relation("TransferFrom", fields: [fromBranchId], references: [id])
+  toBranchId   String
+  toBranch     Branch    @relation("TransferTo", fields: [toBranchId], references: [id])
+  status       String    @default("DRAFT")
+  notes        String?
+  createdById  String?
+  createdBy    User?     @relation("TransferCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime  @default(now())
+  receivedAt   DateTime?
+  lines        StockTransferLine[]
+}
+
+model StockTransferLine {
+  id         String        @id @default(cuid())
+  transferId String
+  transfer   StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product       @relation(fields: [productId], references: [id])
+  quantity   Float
+}
+
+model Sale {
+  id            String   @id @default(cuid())
+  saleNo        String   @unique
+  branchId      String
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  cashierId     String?
+  cashier       User?    @relation(fields: [cashierId], references: [id])
+  channel       String   @default("POS")
+  subtotal      Float
+  tax           Float    @default(0)
+  total         Float
+  paymentMethod String   @default("CASH")
+  createdAt     DateTime @default(now())
+  lines         SaleLine[]
+  onlineOrder   OnlineOrder?
+}
+
+model SaleLine {
+  id        String  @id @default(cuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Float
+  unitPrice Float
+  lineTotal Float
+}
+
+model DayClose {
+  id           String   @id @default(cuid())
+  branchId     String
+  branch       Branch   @relation(fields: [branchId], references: [id])
+  closedById   String?
+  closedBy     User?    @relation(fields: [closedById], references: [id])
+  businessDate DateTime
+  cashExpected Float
+  cashCounted  Float
+  cardTotal    Float    @default(0)
+  saleCount    Int
+  saleTotal    Float
+  variance     Float
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  @@unique([branchId, businessDate])
+}
+
+model ProductionBatch {
+  id          String    @id @default(cuid())
+  batchNo     String    @unique
+  branchId    String
+  branch      Branch    @relation(fields: [branchId], references: [id])
+  status      String    @default("PLANNED")
+  plannedDate DateTime
+  notes       String?
+  createdById String?
+  createdBy   User?     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  lines       ProductionLine[]
+}
+
+model ProductionLine {
+  id         String          @id @default(cuid())
+  batchId    String
+  batch      ProductionBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product         @relation(fields: [productId], references: [id])
+  plannedQty Float
+  actualQty  Float           @default(0)
+}
+
+model WastageRecord {
+  id           String   @id @default(cuid())
+  branchId     String
+  branch       Branch   @relation(fields: [branchId], references: [id])
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id])
+  quantity     Float
+  reason       String
+  recordedById String?
+  recordedBy   User?    @relation(fields: [recordedById], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model OnlineOrder {
+  id            String   @id @default(cuid())
+  orderNo       String   @unique
+  branchId      String
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  fulfillment   String   @default("PICKUP")
+  address       String?
+  status        String   @default("PENDING")
+  subtotal      Float
+  total         Float
+  notes         String?
+  saleId        String?  @unique
+  sale          Sale?    @relation(fields: [saleId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lines         OnlineOrderLine[]
+}
+
+model OnlineOrderLine {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     OnlineOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product     @relation(fields: [productId], references: [id])
+  quantity  Float
+  unitPrice Float
+  lineTotal Float
+}
