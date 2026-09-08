@@ -29,6 +29,9 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+// Prevent Vercel build from prerendering pages that need the database.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">

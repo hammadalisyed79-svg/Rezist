@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "dev:public": "next dev --turbopack -H 0.0.0.0 -p 3000",
-    "build": "prisma generate && next build",
+    "build": "node scripts/use-postgres-schema.js && prisma generate && next build",
     "start": "next start",
     "start:public": "next start -H 0.0.0.0 -p 3000",
     "lint": "next lint",
@@ -13,7 +13,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:setup": "prisma db push && tsx prisma/seed.ts",
     "db:up": "docker compose up -d",
-    "postinstall": "prisma generate"
+    "postinstall": "node scripts/use-postgres-schema.js && prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
